@@ -681,6 +681,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Continuar con el análisis'**
   String get continuarAnalisis;
+
+  /// No description provided for @errorComunicacion.
+  ///
+  /// In es, this message translates to:
+  /// **'Error comunicándose con el servidor. Por favor, intenta nuevamente.'**
+  String get errorComunicacion;
 }
 
 class _AppLocalizationsDelegate

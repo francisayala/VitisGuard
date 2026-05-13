@@ -299,4 +299,8 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get continuarAnalisis => 'Продолжить анализ';
+
+  @override
+  String get errorComunicacion =>
+      'Ошибка связи с сервером. Пожалуйста, попробуйте снова.';
 }

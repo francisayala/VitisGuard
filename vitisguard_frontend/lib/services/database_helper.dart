@@ -22,7 +22,7 @@ class DatabaseHelper {
     databaseFactory = databaseFactoryFfi;
 
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "vitisguard.db");
+    String path = join(documentsDirectory.path, "vitisguard_v2.db");
 
     return await openDatabase(
       path,

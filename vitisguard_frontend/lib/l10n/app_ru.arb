@@ -96,5 +96,6 @@
   "menuConfiguracion": "Настройки",
   "modeloCNN": "Модель CNN v1.2",
   "mensajeGuardado": "Анализ сохранен в локальную историю",
-  "continuarAnalisis": "Продолжить анализ"
+  "continuarAnalisis": "Продолжить анализ",
+  "errorComunicacion": "Ошибка связи с сервером. Пожалуйста, попробуйте снова."
 }

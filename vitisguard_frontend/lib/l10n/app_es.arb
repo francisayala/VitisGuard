@@ -96,5 +96,6 @@
   "menuConfiguracion": "Configuración",
   "modeloCNN": "Modelo CNN v1.2",
   "mensajeGuardado": "Análisis guardado en el historial local",
-  "continuarAnalisis": "Continuar con el análisis"
+  "continuarAnalisis": "Continuar con el análisis",
+  "errorComunicacion": "Error comunicándose con el servidor. Por favor, intenta nuevamente." 
 }

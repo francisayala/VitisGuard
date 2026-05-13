@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:http/http.dart' as http; // <--- Import correcto de internet
+import 'package:http/http.dart' as http;
 
 import '../theme/app_colors.dart';
 import '../services/database_helper.dart';
@@ -29,9 +29,9 @@ class UploadPanel extends StatefulWidget {
 class _UploadPanelState extends State<UploadPanel> {
   File? _imageFile;
   bool _analysisDone = false;
-  bool _isAnalyzing = false; // Variable para saber si está cargando
+  bool _isAnalyzing = false;
 
-  // --- FUNCIÓN PARA SELECCIONAR IMAGEN ---
+  // ================= SELECCIONAR IMAGEN =================
   Future<void> _pickImage() async {
     if (_analysisDone) {
       _clearImage();
@@ -47,67 +47,93 @@ class _UploadPanelState extends State<UploadPanel> {
       setState(() {
         _imageFile = File(result.files.single.path!);
         _analysisDone = false;
+        _isAnalyzing = false;
       });
     }
   }
 
-  // --- FUNCIÓN PARA LIMPIAR LA IMAGEN ---
+  // ================= LIMPIAR IMAGEN =================
   void _clearImage() {
     setState(() {
       _imageFile = null;
       _analysisDone = false;
-      if (widget.onAnalysisComplete != null) {
-        widget.onAnalysisComplete!("--", 0.0, 0.0, "", 0, 0);
-      }
+      _isAnalyzing = false;
     });
+
+    // Limpia también el panel derecho
+    if (widget.onAnalysisComplete != null) {
+      widget.onAnalysisComplete!("--", 0.0, 0.0, "", 0, 0);
+    }
   }
 
-  // --- CONEXIÓN A PYTHON ---
-
+  // ================= CONEXIÓN A PYTHON =================
   Future<void> _analizarImagenEnBackend(File imagen) async {
     final l10n = AppLocalizations.of(context)!;
     final dbHelper = DatabaseHelper();
 
+    // Activamos loader
     setState(() {
       _isAnalyzing = true;
+      _analysisDone = false;
     });
+
+    // SnackBar analizando
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${l10n.mensajeGuardado}..."),
+          backgroundColor: AppColors.accentSoft,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
     try {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('http://127.0.0.1:8000/api/analyze'),
       );
+
       request.files.add(await http.MultipartFile.fromPath('file', imagen.path));
 
       var streamedResponse = await request.send();
+
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
 
-        // 1. Extraemos los datos de la IA
+        // ================= EXTRAER DATOS =================
+
         double indiceReal = (data['iaa_severity'] ?? 0).toDouble();
 
         int areaTotalReal = data['total_area_px'] ?? 0;
+
         int areaAfectadaReal = data['affected_area_px'] ?? 0;
 
         Map<String, dynamic> pathogens = data['pathogens'] ?? {};
+
         String diagnosticoReal = pathogens.isNotEmpty
             ? pathogens.keys.first
             : "Hoja Sana";
 
+        // Traducciones
         if (diagnosticoReal == "Powdery_Mildew") {
           diagnosticoReal = "Mildiu (Oídio)";
         }
+
         if (diagnosticoReal == "Birds_Eye_Rot") {
           diagnosticoReal = "Antracnosis";
         }
 
-        // 2. Guardamos en la Base de Datos REAL
+        // ================= GUARDAR EN SQLITE =================
+
         await dbHelper.insertarAnalisis({
           "fecha": DateTime.now().toString().substring(0, 16),
           "diagnostico": diagnosticoReal,
-          "severidad": indiceReal < 15.00
+          "severidad": indiceReal < 15.0
               ? "Leve"
               : (indiceReal < 30.0 ? "Moderada" : "Severa"),
           "indice": "${indiceReal.toStringAsFixed(1)}%",
@@ -115,6 +141,29 @@ class _UploadPanelState extends State<UploadPanel> {
           "area_total": areaTotalReal,
           "area_afectada": areaAfectadaReal,
         });
+
+        // ================= ACTUALIZAR ESTADO =================
+
+        setState(() {
+          _analysisDone = true;
+          _isAnalyzing = false;
+        });
+
+        // ================= SNACKBAR ÉXITO =================
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.mensajeGuardado),
+              backgroundColor: AppColors.accent,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+
+        // ================= ENVIAR DATOS AL DASHBOARD =================
 
         if (widget.onAnalysisComplete != null) {
           widget.onAnalysisComplete!(
@@ -126,29 +175,33 @@ class _UploadPanelState extends State<UploadPanel> {
             areaAfectadaReal,
           );
         }
-
-        setState(() {
-          _analysisDone = true;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.mensajeGuardado),
-              backgroundColor: AppColors.accent,
-            ),
-          );
-        }
+      } else {
+        throw Exception("Error del servidor: ${response.statusCode}");
       }
     } catch (e) {
       print("Error conectando con el servidor: $e");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("${l10n.errorComunicacion} (Python)"),
+            backgroundColor: AppColors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isAnalyzing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
     }
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -176,6 +229,7 @@ class _UploadPanelState extends State<UploadPanel> {
               ),
             ],
           ),
+
           const SizedBox(height: 24),
 
           // ================= ÁREA DE CARGA =================
@@ -202,7 +256,9 @@ class _UploadPanelState extends State<UploadPanel> {
                             size: 54,
                             color: AppColors.accent,
                           ),
+
                           const SizedBox(height: 16),
+
                           Text(
                             l10n.arrastraImagen,
                             style: const TextStyle(
@@ -210,12 +266,16 @@ class _UploadPanelState extends State<UploadPanel> {
                               fontSize: 16,
                             ),
                           ),
+
                           const SizedBox(height: 8),
+
                           Text(
                             l10n.o,
                             style: const TextStyle(color: AppColors.textSoft),
                           ),
+
                           const SizedBox(height: 12),
+
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
@@ -233,7 +293,9 @@ class _UploadPanelState extends State<UploadPanel> {
                                   color: Colors.black,
                                   size: 20,
                                 ),
+
                                 const SizedBox(width: 8),
+
                                 Text(
                                   l10n.botonSeleccionar,
                                   style: const TextStyle(
@@ -244,7 +306,9 @@ class _UploadPanelState extends State<UploadPanel> {
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 16),
+
                           Text(
                             l10n.formatos,
                             style: const TextStyle(
@@ -268,6 +332,7 @@ class _UploadPanelState extends State<UploadPanel> {
                                 fit: BoxFit.contain,
                               ),
                             ),
+
                             if (!_analysisDone && !_isAnalyzing)
                               Positioned(
                                 top: 10,
@@ -294,9 +359,10 @@ class _UploadPanelState extends State<UploadPanel> {
               ),
             ),
           ),
+
           const SizedBox(height: 24),
 
-          // ================= SECCIÓN DE CONSEJOS =================
+          // ================= CONSEJOS =================
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -314,7 +380,9 @@ class _UploadPanelState extends State<UploadPanel> {
                       color: AppColors.accent,
                       size: 20,
                     ),
+
                     const SizedBox(width: 10),
+
                     Text(
                       l10n.tituloTips,
                       style: const TextStyle(
@@ -324,16 +392,19 @@ class _UploadPanelState extends State<UploadPanel> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+
                 _buildTip(Icons.wb_sunny_outlined, l10n.tip1),
                 _buildTip(Icons.eco_outlined, l10n.tip2),
                 _buildTip(Icons.crop_free, l10n.tip3),
               ],
             ),
           ),
+
           const SizedBox(height: 24),
 
-          // ================= BOTÓN ANALIZAR HOJA  =================
+          // ================= BOTÓN ANALIZAR =================
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -347,6 +418,7 @@ class _UploadPanelState extends State<UploadPanel> {
                         _clearImage();
                       }
                     },
+
               icon: _isAnalyzing
                   ? const SizedBox(
                       width: 20,
@@ -361,6 +433,7 @@ class _UploadPanelState extends State<UploadPanel> {
                           ? Icons.refresh
                           : Icons.energy_savings_leaf_outlined,
                     ),
+
               label: Text(
                 _isAnalyzing
                     ? "Analizando IA..."
@@ -372,11 +445,14 @@ class _UploadPanelState extends State<UploadPanel> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: _imageFile == null
                     ? Colors.grey
                     : (_analysisDone ? Colors.white24 : AppColors.accent),
+
                 foregroundColor: _analysisDone ? Colors.white : Colors.black,
+
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -388,13 +464,16 @@ class _UploadPanelState extends State<UploadPanel> {
     );
   }
 
+  // ================= WIDGET TIP =================
   Widget _buildTip(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Icon(icon, color: AppColors.textSoft, size: 18),
+
           const SizedBox(width: 12),
+
           Expanded(
             child: Text(
               text,

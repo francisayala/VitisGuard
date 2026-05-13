@@ -96,6 +96,7 @@
   "menuConfiguracion": "Settings",
   "modeloCNN": "CNN Model v1.2",
   "mensajeGuardado": "Analysis saved to local history",
-  "continuarAnalisis": "Continue with the analysis"
+  "continuarAnalisis": "Continue with the analysis",
+  "errorComunicacion": "Error communicating with the server. Please try again." 
   
 }

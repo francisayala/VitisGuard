@@ -301,4 +301,8 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get continuarAnalisis => 'Continuar con el análisis';
+
+  @override
+  String get errorComunicacion =>
+      'Error comunicándose con el servidor. Por favor, intenta nuevamente.';
 }
