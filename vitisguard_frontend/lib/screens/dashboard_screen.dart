@@ -189,6 +189,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             rutaImagen: _rutaImagenActual,
             areaTotal: _areaTotal,
             areaAfectada: _areaAfectada,
+
+            modoCompleto: false,
             onNuevoAnalisis: () => setState(() {
               _diagnostico = "--";
               _indice = 0.0;

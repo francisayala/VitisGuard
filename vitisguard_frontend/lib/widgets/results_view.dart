@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../theme/app_colors.dart';
 import 'glass_card.dart';
 import 'severity_bar.dart';
@@ -6,15 +7,17 @@ import 'responsive.dart';
 import '../l10n/app_localizations.dart';
 
 class ResultsView extends StatelessWidget {
-  // Compuertas para recibir los datos del análisis
   final double indice;
   final double confianza;
-  final String diagnostico; // Se mantiene para no romper el dashboard
-  final String? rutaImagen; // Se mantiene para no romper el dashboard
+  final String diagnostico;
+  final String? rutaImagen;
   final String fecha;
   final int areaTotal;
   final int areaAfectada;
   final VoidCallback? onNuevoAnalisis;
+
+  // ---> EL INTERRUPTOR MÁGICO <---
+  final bool modoCompleto;
 
   const ResultsView({
     super.key,
@@ -26,9 +29,9 @@ class ResultsView extends StatelessWidget {
     this.areaTotal = 0,
     this.areaAfectada = 0,
     this.onNuevoAnalisis,
+    this.modoCompleto = true,
   });
 
-  // Función para obtener la fecha de hoy si es un análisis nuevo
   String _obtenerFechaActual() {
     final now = DateTime.now();
     return "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} - ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
@@ -39,7 +42,6 @@ class ResultsView extends StatelessWidget {
     final bool isMobile = Responsive.isMobile(context);
     final l10n = AppLocalizations.of(context)!;
 
-    // --- LÓGICA DINÁMICA ---
     final String fechaMostrar = fecha.isNotEmpty
         ? fecha
         : _obtenerFechaActual();
@@ -53,7 +55,7 @@ class ResultsView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /// ================= HEADER =================
+        /// ================= HEADER (SIEMPRE SE MUESTRA) =================
         Text(
           l10n.tituloResultados,
           style: TextStyle(
@@ -80,9 +82,148 @@ class ResultsView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
 
-        /// ================= BODY (SOLO MÉTRICAS) =================
+        /// ================= CUERPO =================
+        // SI EL INTERRUPTOR ESTÁ APAGADO (Pestaña Análisis): Solo mostramos métricas
+        if (!modoCompleto)
+          _buildRightColumn(
+            context,
+            isMobile,
+            l10n,
+            textoSeveridad,
+            colorSeveridad,
+          )
+        // SI EL INTERRUPTOR ESTÁ ENCENDIDO (Pestaña Resultados): Mostramos las 2 columnas
+        else
+          isMobile
+              ? Column(
+                  children: [
+                    _buildLeftColumn(context, isMobile, l10n),
+                    const SizedBox(height: 20),
+                    _buildRightColumn(
+                      context,
+                      isMobile,
+                      l10n,
+                      textoSeveridad,
+                      colorSeveridad,
+                    ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: _buildLeftColumn(context, isMobile, l10n),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 6,
+                      child: _buildRightColumn(
+                        context,
+                        isMobile,
+                        l10n,
+                        textoSeveridad,
+                        colorSeveridad,
+                      ),
+                    ),
+                  ],
+                ),
+      ],
+    );
+  }
 
-        // 1. Índice de afectación
+  // --- COLUMNA IZQUIERDA (FOTO RECTANGULAR Y DIAGNÓSTICO) ---
+  Widget _buildLeftColumn(
+    BuildContext context,
+    bool isMobile,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 16 / 10,
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.black26,
+              border: Border.all(color: AppColors.border),
+              image: rutaImagen != null && rutaImagen!.isNotEmpty
+                  ? DecorationImage(
+                      image: FileImage(File(rutaImagen!)),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: rutaImagen == null || rutaImagen!.isEmpty
+                ? const Center(
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: 60,
+                      color: Colors.white54,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+        const SizedBox(height: 20),
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Diagnóstico",
+                style: TextStyle(color: AppColors.textSoft, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Se detectaron signos compatibles con:",
+                style: TextStyle(color: AppColors.text, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                diagnostico,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text(
+                    "Confianza: ",
+                    style: TextStyle(color: AppColors.textSoft, fontSize: 13),
+                  ),
+                  Text(
+                    "${confianza.toStringAsFixed(1)}%",
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- COLUMNA DERECHA (MÉTRICAS Y BOTONES) ---
+  Widget _buildRightColumn(
+    BuildContext context,
+    bool isMobile,
+    AppLocalizations l10n,
+    String textoSeveridad,
+    Color colorSeveridad,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         GlassCard(
           child: Row(
             children: [
@@ -136,7 +277,6 @@ class ResultsView extends StatelessWidget {
                   ],
                 ),
               ),
-              // Círculo
               Container(
                 width: 110,
                 height: 110,
@@ -162,8 +302,6 @@ class ResultsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-
-        // 2. Áreas (Dinámicas)
         Row(
           children: [
             Expanded(
@@ -186,8 +324,6 @@ class ResultsView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-
-        // 3. Nivel de Severidad
         GlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,8 +338,6 @@ class ResultsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-
-        // 4. Recomendaciones
         GlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,11 +356,11 @@ class ResultsView extends StatelessWidget {
                 child: TextButton(
                   onPressed: () {},
                   style: TextButton.styleFrom(
+                    backgroundColor: AppColors.accentSoft,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 12,
                     ),
-                    backgroundColor: AppColors.accentSoft,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: const BorderSide(color: AppColors.border),
@@ -241,63 +375,68 @@ class ResultsView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 30),
-
-        /// ================= FOOTER BUTTONS =================
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                if (onNuevoAnalisis != null) {
-                  onNuevoAnalisis!(); // Limpia los datos desde el dashboard
-                } else {
-                  Navigator.maybePop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.card,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 20,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-              ),
-              child: Text(
-                l10n.nuevoAnalisis,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 20),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Generación de reporte en desarrollo..."),
+        if (modoCompleto)
+          Padding(
+            padding: const EdgeInsets.only(top: 30, bottom: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (onNuevoAnalisis != null)
+                      onNuevoAnalisis!();
+                    else
+                      Navigator.maybePop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.card,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accentSoft,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 20,
+                  child: const Text(
+                    "Nueva imagen",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.accent),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Generación de reporte en desarrollo..."),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    "Exportar reporte",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                l10n.descargarReporte,
-                style: const TextStyle(color: AppColors.accent),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
       ],
     );
   }
