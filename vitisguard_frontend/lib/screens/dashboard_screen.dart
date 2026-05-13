@@ -105,29 +105,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ================= LÓGICA DE PESTAÑAS (NAVEGACIÓN) =================
   Widget _buildCurrentPage(bool isMobile, AppLocalizations l10n) {
     final padding = EdgeInsets.all(isMobile ? 16 : 28);
 
-    // PESTAÑA 0: ANÁLISIS + RESULTADOS (LADO A LADO)
     if (selectedIndex == 0) {
+      // 0. PESTAÑA ANÁLISIS: Tu diseño perfecto de 2 columnas
       return SingleChildScrollView(
-        // <--- Agregamos scroll por seguridad
         padding: padding,
         child: isMobile ? _mobileLayout() : _desktopLayout(),
       );
-    }
-    // PESTAÑA 2: HISTORIAL
-    else if (selectedIndex == 2) {
-      return HistoryView(onViewDetail: _cargarAnalisisHistorico);
+    } else if (selectedIndex == 1) {
+      // 1. PESTAÑA RESULTADOS: Vista enfocada a los datos
+      return SingleChildScrollView(
+        padding: padding,
+        child: Center(
+          child: SizedBox(
+            width: 800,
+            child: ResultsView(
+              indice: _indice,
+              confianza: _confianza,
+              diagnostico: _diagnostico,
+              rutaImagen: _rutaImagenActual,
+              areaTotal: _areaTotal,
+              areaAfectada: _areaAfectada,
+              onNuevoAnalisis: () => setState(() {
+                _diagnostico = "--";
+                selectedIndex = 0; // Regresa al inicio
+              }),
+            ),
+          ),
+        ),
+      );
+    } else if (selectedIndex == 2) {
+      // 2. PESTAÑA HISTORIAL: (¡Agregamos el Scroll para quitar el error amarillo!)
+      return SingleChildScrollView(
+        padding: padding,
+        child: HistoryView(onViewDetail: _cargarAnalisisHistorico),
+      );
+    } else if (selectedIndex == 3) {
+      // 3. PESTAÑA REPORTES
+      return SingleChildScrollView(
+        padding: padding,
+        child: const ReportesView(),
+      );
+    } else if (selectedIndex == 4) {
+      // 4. PESTAÑA MODELOS
+      return SingleChildScrollView(
+        padding: padding,
+        child: const ModelosView(),
+      );
+    } else if (selectedIndex == 5) {
+      // 5. PESTAÑA CONFIGURACIÓN
+      return SingleChildScrollView(
+        padding: padding,
+        child: const ConfiguracionView(),
+      );
     }
 
-    // Si necesitas otras pestañas, agrégalas aquí...
-    return Center(
-      child: Text(
-        "Pestaña ${selectedIndex}",
-        style: TextStyle(color: Colors.white),
-      ),
-    );
+    // Por seguridad, si hay un índice inválido:
+    return const SizedBox.shrink();
   }
 
   // ================= LAYOUTS QUE MANTIENEN EL PANEL DERECHO =================
