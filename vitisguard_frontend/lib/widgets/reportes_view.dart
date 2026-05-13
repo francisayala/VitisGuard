@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../theme/app_colors.dart';
+import '../services/database_helper.dart';
 import 'responsive.dart';
-import '../l10n/app_localizations.dart'; // <--- Importamos los idiomas
+import '../l10n/app_localizations.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart'; // <--- Importamos tu diccionario
 
 class ReportesView extends StatefulWidget {
   const ReportesView({super.key});
@@ -11,125 +16,307 @@ class ReportesView extends StatefulWidget {
 }
 
 class _ReportesViewState extends State<ReportesView> {
-  int _currentTab = 0; // 0 = Generar reporte, 1 = Mis reportes
+  List<Map<String, dynamic>> _historial = [];
+  int? _selectedIndex;
 
-  // Estados de los Checkboxes
+  final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+
   bool _incImagen = true;
   bool _incResultados = true;
   bool _incRecomendaciones = true;
-  bool _incInformacion = true;
+  bool _incInfoHoja = true;
 
   @override
-  Widget build(BuildContext context) {
-    final bool isMobile = Responsive.isMobile(context);
-    final l10n = AppLocalizations.of(context)!; // <--- Inicializamos
+  void initState() {
+    super.initState();
+    _cargarHistorial();
+    final now = DateTime.now();
+    _nombreController.text =
+        "Reporte ${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        /// ================= TÍTULO =================
-        Text(
-          l10n.tituloDocReporte, // <--- TRADUCIDO
-          style: TextStyle(
-            fontSize: isMobile ? 24 : 32,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 24),
+  Future<void> _cargarHistorial() async {
+    final datos = await DatabaseHelper().obtenerHistorial();
+    setState(() {
+      _historial = datos;
+    });
+  }
 
-        /// ================= PESTAÑAS (TABS) =================
-        Row(
-          children: [
-            _buildTab(l10n.tabGenerar, 0), // <--- TRADUCIDO
-            const SizedBox(width: 20),
-            _buildTab(l10n.tabMisReportes, 1), // <--- TRADUCIDO
-          ],
-        ),
-        Container(
-          height: 1,
-          width: double.infinity,
-          color: AppColors.border,
-          margin: const EdgeInsets.only(bottom: 24),
-        ),
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
 
-        /// ================= CONTENIDO DE LA PESTAÑA =================
-        if (_currentTab == 0)
-          isMobile
-              ? Column(
-                  children: [
-                    _buildFormColumn(l10n),
-                    const SizedBox(height: 40),
-                    _buildPreviewColumn(l10n),
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 4, child: _buildFormColumn(l10n)),
-                    const SizedBox(width: 40),
-                    Expanded(flex: 5, child: _buildPreviewColumn(l10n)),
-                  ],
-                )
-        else
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(40.0),
-              child: Text(
-                "Aquí aparecerá el historial de PDF generados...",
-                style: TextStyle(color: AppColors.textSoft),
+  // --- EL MOTOR GENERADOR DE PDF ---
+  Future<void> _generarYDescargarPDF(
+    Map<String, dynamic> data,
+    AppLocalizations l10n,
+  ) async {
+    final pdf = pw.Document();
+
+    // 1. Cargamos fuentes que soporten Ruso, Español e Inglés
+    final fuenteNormal = await PdfGoogleFonts.robotoRegular();
+    final fuenteNegrita = await PdfGoogleFonts.robotoBold();
+
+    // 2. Preparamos la imagen si está seleccionada
+    pw.ImageProvider? imageProvider;
+    if (_incImagen && data['ruta_imagen'] != null) {
+      final file = File(data['ruta_imagen']);
+      if (file.existsSync()) {
+        final imageBytes = await file.readAsBytes();
+        imageProvider = pw.MemoryImage(imageBytes);
+      }
+    }
+
+    // 3. Estructura del Documento
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: fuenteNormal, bold: fuenteNegrita),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    "VitisGuard",
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green800,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-      ],
+              pw.SizedBox(height: 20),
+              pw.Center(
+                child: pw.Text(
+                  l10n.tituloDocReporte,
+                  style: pw.TextStyle(
+                    fontSize: 18,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Divider(thickness: 1.5),
+              pw.SizedBox(height: 20),
+
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (_incImagen && imageProvider != null)
+                    pw.Expanded(
+                      flex: 5,
+                      child: pw.Image(
+                        imageProvider,
+                        height: 180,
+                        fit: pw.BoxFit.cover,
+                      ),
+                    ),
+                  if (_incImagen) pw.SizedBox(width: 20),
+
+                  if (_incResultados)
+                    pw.Expanded(
+                      flex: 5,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          _pdfInfoField(l10n.diagnostico, data['diagnostico']),
+                          _pdfInfoField(
+                            l10n.indiceAfectacion,
+                            data['indice'].toString(),
+                          ),
+                          _pdfInfoField(l10n.colSeveridad, data['severidad']),
+                          _pdfInfoField(l10n.colFecha, data['fecha']),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              pw.SizedBox(height: 30),
+
+              if (_incRecomendaciones) ...[
+                pw.Text(
+                  l10n.recomendaciones,
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                _pdfBullet(l10n.rec1),
+                _pdfBullet(l10n.rec2),
+                _pdfBullet(l10n.rec3),
+              ],
+              pw.Spacer(),
+              pw.Divider(thickness: 0.5),
+              pw.Center(
+                child: pw.Text(
+                  "VitisGuard - Detección de Patógenos en Vitis vinifera L.",
+                  style: const pw.TextStyle(color: PdfColors.grey, fontSize: 9),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // 4. Compartir/Guardar el archivo
+    await Printing.sharePdf(
+      bytes: await pdf.save(),
+      filename: '${_nombreController.text}.pdf',
     );
   }
 
-  // --- WIDGETS DE TABS ---
-  Widget _buildTab(String title, int index) {
-    final isActive = _currentTab == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentTab = index),
-      child: Column(
+  pw.Widget _pdfInfoField(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 10),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? AppColors.accent : AppColors.textSoft,
-            ),
+          pw.Text(
+            label,
+            style: const pw.TextStyle(color: PdfColors.grey700, fontSize: 10),
           ),
-          const SizedBox(height: 8),
-          Container(
-            height: 3,
-            width: 120, // Ancho de la línea verde
-            color: isActive ? AppColors.accent : Colors.transparent,
+          pw.Text(
+            value,
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  // --- COLUMNA IZQUIERDA: FORMULARIO ---
-  Widget _buildFormColumn(AppLocalizations l10n) {
+  pw.Widget _pdfBullet(String text) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 5),
+      child: pw.Row(
+        children: [
+          pw.Text("> ", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Expanded(
+            child: pw.Text(text, style: const pw.TextStyle(fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isMobile = Responsive.isMobile(context);
+    final l10n = AppLocalizations.of(context)!; // <--- Inicializamos el L10N
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ================= HEADER Y TABS =================
+        Text(
+          l10n.tituloReportes,
+          style: TextStyle(
+            fontSize: isMobile ? 24 : 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.only(bottom: 8),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: AppColors.accent, width: 2),
+                ),
+              ),
+              child: Text(
+                l10n.tabGenerar,
+                style: const TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Text(
+              l10n.tabMisReportes,
+              style: const TextStyle(color: AppColors.textSoft, fontSize: 16),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+        const Divider(color: Colors.white10, height: 1),
+        const SizedBox(height: 30),
+
+        // ================= CUERPO PRINCIPAL =================
+        isMobile
+            ? Column(
+                children: [
+                  _buildFormulario(l10n),
+                  const SizedBox(height: 40),
+                  _buildVistaPrevia(l10n),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 4, child: _buildFormulario(l10n)),
+                  const SizedBox(width: 40),
+                  Expanded(flex: 6, child: _buildVistaPrevia(l10n)),
+                ],
+              ),
+      ],
+    );
+  }
+
+  // --- 1. FORMULARIO IZQUIERDO ---
+  Widget _buildFormulario(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n.infoReporte, // <--- TRADUCIDO
+          l10n.infoReporte,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
 
-        _inputLabel(l10n.nombreReporte), // <--- TRADUCIDO
-        _customTextField("Reporte 20/05/2024"),
-        const SizedBox(height: 16),
+        // Nombre del reporte
+        Text(
+          l10n.nombreReporte,
+          style: const TextStyle(color: AppColors.textSoft, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        _buildTextField(
+          _nombreController,
+          "Ej. Reporte Parcela Norte",
+        ), // Hint estático
+        const SizedBox(height: 20),
 
-        _inputLabel(l10n.descReporte), // <--- TRADUCIDO
-        _customTextField("Análisis de hojas de parcela norte", maxLines: 3),
-        const SizedBox(height: 16),
+        // Descripción
+        Text(
+          l10n.descReporte,
+          style: const TextStyle(color: AppColors.textSoft, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        _buildTextField(
+          _descController,
+          "Añade notas adicionales...",
+          maxLines: 3,
+        ), // Hint estático
+        const SizedBox(height: 20),
 
-        _inputLabel(l10n.seleccionarAnalisis), // <--- TRADUCIDO
+        // Dropdown Seleccionar Análisis
+        Text(
+          l10n.seleccionarAnalisis,
+          style: const TextStyle(color: AppColors.textSoft, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
@@ -138,67 +325,94 @@ class _ReportesViewState extends State<ReportesView> {
             border: Border.all(color: AppColors.border),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: DropdownButton<int>(
               isExpanded: true,
-              value: l10n.seleccionarAnalisis, // <--- TRADUCIDO
               dropdownColor: AppColors.card,
-              style: const TextStyle(color: Colors.white),
-              items: [
-                DropdownMenuItem(
-                  value: l10n.seleccionarAnalisis,
-                  child: Text(l10n.seleccionarAnalisis),
-                ),
-              ],
-              onChanged: (val) {},
+              value: _selectedIndex,
+              hint: Text(
+                l10n.seleccionarAnalisis,
+                style: const TextStyle(color: AppColors.textSoft),
+              ),
+              icon: const Icon(
+                Icons.arrow_drop_down,
+                color: AppColors.textSoft,
+              ),
+              items: List.generate(_historial.length, (index) {
+                final item = _historial[index];
+                return DropdownMenuItem(
+                  value: index,
+                  child: Text(
+                    "${item['fecha']} - ${item['diagnostico']}",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                );
+              }),
+              onChanged: (value) {
+                setState(() {
+                  _selectedIndex = value;
+                });
+              },
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 30),
 
+        // Checkboxes
         Text(
-          l10n.incluirReporte, // <--- TRADUCIDO
+          l10n.incluirReporte,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
-
-        _customCheckbox(
-          l10n.chkImagen, // <--- TRADUCIDO
+        const SizedBox(height: 16),
+        _buildCheckbox(
+          l10n.chkImagen,
           _incImagen,
           (val) => setState(() => _incImagen = val!),
         ),
-        _customCheckbox(
-          l10n.chkResultados, // <--- TRADUCIDO
+        _buildCheckbox(
+          l10n.chkResultados,
           _incResultados,
           (val) => setState(() => _incResultados = val!),
         ),
-        _customCheckbox(
-          l10n.chkRecomendaciones, // <--- TRADUCIDO
+        _buildCheckbox(
+          l10n.chkRecomendaciones,
           _incRecomendaciones,
           (val) => setState(() => _incRecomendaciones = val!),
         ),
-        _customCheckbox(
-          l10n.chkInfoHoja, // <--- TRADUCIDO
-          _incInformacion,
-          (val) => setState(() => _incInformacion = val!),
+        _buildCheckbox(
+          l10n.chkInfoHoja,
+          _incInfoHoja,
+          (val) => setState(() => _incInfoHoja = val!),
         ),
-
         const SizedBox(height: 30),
+
+        // Botón Generar
         SizedBox(
           width: double.infinity,
-          height: 56,
+          height: 55,
           child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.description_outlined),
+            onPressed: _selectedIndex == null
+                ? null
+                : () async {
+                    // Llamamos a la función real que acabamos de pegar
+                    await _generarYDescargarPDF(
+                      _historial[_selectedIndex!],
+                      l10n,
+                    );
+                  },
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
             label: Text(
-              l10n.btnGenerar, // <--- TRADUCIDO
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              l10n.btnGenerar,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentSoft,
-              foregroundColor: AppColors.accent,
+              backgroundColor: AppColors.accent,
+              disabledBackgroundColor: AppColors.card,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.accent),
               ),
             ),
           ),
@@ -207,17 +421,192 @@ class _ReportesViewState extends State<ReportesView> {
     );
   }
 
-  Widget _inputLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(color: AppColors.textSoft, fontSize: 13),
-      ),
+  // --- 2. VISTA PREVIA DERECHA (EL "PAPEL") ---
+  Widget _buildVistaPrevia(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.vistaPrevia,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: _selectedIndex == null
+              ? SizedBox(
+                  height: 400,
+                  child: Center(
+                    child: Text(
+                      "${l10n.seleccionarAnalisis}...",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ),
+                )
+              : _buildDocumentoPDF(_historial[_selectedIndex!], l10n),
+        ),
+      ],
     );
   }
 
-  Widget _customTextField(String hint, {int maxLines = 1}) {
+  // --- DIBUJO DEL DOCUMENTO ESTILO PDF ---
+  Widget _buildDocumentoPDF(Map<String, dynamic> data, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield, color: AppColors.accent, size: 28),
+            const SizedBox(width: 8),
+            const Text(
+              "VitisGuard",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: Text(
+            l10n.tituloDocReporte,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Divider(color: Colors.black12, thickness: 2),
+        const SizedBox(height: 20),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_incImagen)
+              Expanded(
+                flex: 5,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(data['ruta_imagen']),
+                    height: 180,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            if (_incImagen) const SizedBox(width: 30),
+
+            if (_incResultados)
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.diagnostico,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      data['diagnostico'],
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      l10n.indiceAfectacion,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      data['indice'],
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      l10n.colSeveridad,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      data['severidad'],
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      l10n.colFecha,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      data['fecha'],
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 40),
+
+        if (_incRecomendaciones) ...[
+          Text(
+            l10n.recomendaciones,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _pdfBulletPoint(l10n.rec1),
+          _pdfBulletPoint(l10n.rec2),
+          _pdfBulletPoint(l10n.rec3),
+        ],
+        const SizedBox(height: 60),
+
+        const Center(
+          child: Text(
+            "VitisGuard - Detección de Patógenos en Vitis vinifera L.",
+            style: TextStyle(color: Colors.grey, fontSize: 10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- UTILIDADES ---
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint, {
+    int maxLines = 1,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black26,
@@ -225,11 +614,12 @@ class _ReportesViewState extends State<ReportesView> {
         border: Border.all(color: AppColors.border),
       ),
       child: TextField(
+        controller: controller,
         maxLines: maxLines,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white70),
+          hintStyle: const TextStyle(color: AppColors.textSoft),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
         ),
@@ -237,194 +627,47 @@ class _ReportesViewState extends State<ReportesView> {
     );
   }
 
-  Widget _customCheckbox(String title, bool value, Function(bool?) onChanged) {
-    return Theme(
-      data: ThemeData(unselectedWidgetColor: AppColors.textSoft),
-      child: CheckboxListTile(
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-        value: value,
-        onChanged: onChanged,
-        activeColor: AppColors.accent,
-        checkColor: Colors.black,
-        contentPadding: EdgeInsets.zero,
-        controlAffinity: ListTileControlAffinity.leading,
-        dense: true,
-      ),
-    );
-  }
-
-  // --- COLUMNA DERECHA: VISTA PREVIA (HOJA BLANCA) ---
-  Widget _buildPreviewColumn(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.vistaPrevia, // <--- TRADUCIDO
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-
-        // LA HOJA DE PAPEL BLANCA
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(
-            color: const Color(
-              0xFFF8FAFC,
-            ), // Blanco ligeramente grisáceo de papel
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Logo en el PDF
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.shield, color: Color(0xFF2E7D32), size: 24),
-                  SizedBox(width: 8),
-                  Text(
-                    "VitisGuard",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                l10n.tituloDocReporte, // <-- Título oficial del documento (lo dejamos fijo)
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Divider(color: Colors.black26, height: 30, thickness: 1),
-
-              // Contenido del PDF (Imagen y Datos)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Imagen miniatura
-                  if (_incImagen)
-                    Expanded(
-                      flex: 4,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          "https://images.unsplash.com/photo-1558293842-c0fd3db86157?q=80&w=300&auto=format&fit=crop",
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  if (_incImagen) const SizedBox(width: 20),
-
-                  // Textos de resultados
-                  if (_incResultados)
-                    Expanded(
-                      flex: 5,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _pdfLabel(l10n.diagnostico), // <--- TRADUCIDO
-                          _pdfValue("Mildiu (Plasmopara viticola)"),
-                          const SizedBox(height: 8),
-                          _pdfLabel(l10n.indiceAfectacion), // <--- TRADUCIDO
-                          _pdfValue("12.45%"),
-                          const SizedBox(height: 8),
-                          _pdfLabel(
-                            l10n.colSeveridad,
-                          ), // <--- TRADUCIDO ("Severidad")
-                          _pdfValue(l10n.leve), // <--- TRADUCIDO ("Leve")
-                          const SizedBox(height: 8),
-                          _pdfLabel(l10n.colFecha), // <--- TRADUCIDO ("Fecha")
-                          _pdfValue("20/05/2024 - 10:45 a. m."),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 30),
-
-              // Recomendaciones PDF
-              if (_incRecomendaciones) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.recomendaciones,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _pdfBullet(l10n.rec1),
-                _pdfBullet(l10n.rec2),
-                _pdfBullet(l10n.rec3),
-              ],
-
-              const SizedBox(height: 40),
-              const Divider(color: Colors.black12, thickness: 1),
-              const Text(
-                "VitisGuard - Detección de Patógenos en Vitis vinifera L.",
-                style: TextStyle(color: Colors.black38, fontSize: 10),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _pdfLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(color: Colors.black54, fontSize: 12),
-    );
-  }
-
-  Widget _pdfValue(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.black87,
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  Widget _pdfBullet(String text) {
+  Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.accent,
+              checkColor: Colors.white,
+              side: const BorderSide(color: AppColors.textSoft),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pdfBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             "•",
-            style: TextStyle(color: Colors.black54, fontSize: 14),
+            style: TextStyle(color: Colors.black, fontSize: 18, height: 1),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(color: Colors.black87, fontSize: 12),
+              style: const TextStyle(color: Colors.black87, fontSize: 13),
             ),
           ),
         ],

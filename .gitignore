@@ -9,6 +9,7 @@ __pycache__/
 venv/
 env/
 vitisguardvenv/
+data/temp_uploads/
 
 .env
 
@@ -22,10 +23,14 @@ vitisguardvenv/
 # 📱 FLUTTER / DART
 # ==========================================
 .dart_tool/
-build/
 .packages
-.pub/
 .pub-cache/
+.pub/
+build/
+kernel.*
+# Ignorar archivos generados por plugins
+/windows/flutter/generated_plugin_registrant.cc
+/windows/flutter/generated_plugins.cmake
 
 # Flutter generated
 .flutter-plugins
@@ -62,3 +67,12 @@ Thumbs.db
 # ==========================================
 *.jks
 *.keystore
+
+# Android / iOS / Desktop generated
+android/.gradle/
+android/app/debug/
+ios/Pods/
+ios/.symlinks/
+linux/flutter/generated_*/
+windows/flutter/generated_*/
+macos/Flutter/GeneratedPluginRegistrant.*
