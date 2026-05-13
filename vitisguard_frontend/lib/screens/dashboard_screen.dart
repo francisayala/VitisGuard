@@ -230,10 +230,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
+          // ¡Aquí está el salvavidas aplicado correctamente!
           if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            Builder(
+              builder: (BuildContext innerContext) {
+                return IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(innerContext).openDrawer(),
+                );
+              },
             ),
           const Text(
             "VitisGuard",
