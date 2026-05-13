@@ -5,9 +5,9 @@ import 'responsive.dart';
 import '../l10n/app_localizations.dart';
 import '../services/database_helper.dart';
 import 'dart:io';
+import 'dart:math';
 
 class HistoryView extends StatefulWidget {
-  // --- EL PUENTE: Definimos que HistoryView puede enviar datos hacia afuera ---
   final Function(Map<String, dynamic> analisis)? onViewDetail;
 
   const HistoryView({super.key, this.onViewDetail});
@@ -20,6 +20,11 @@ class _HistoryViewState extends State<HistoryView> {
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _historialReal = [];
 
+  // --- VARIABLES DE PAGINACIÓN ---
+  int _paginaActual = 1;
+  final int _itemsPorPagina =
+      8; // Puedes ajustar este número según tus necesidades
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +35,7 @@ class _HistoryViewState extends State<HistoryView> {
     final datos = await DatabaseHelper().obtenerHistorial();
     setState(() {
       _historialReal = datos;
+      _paginaActual = 1; // Reseteamos a la página 1 al cargar
     });
   }
 
@@ -44,6 +50,24 @@ class _HistoryViewState extends State<HistoryView> {
     if (sev.contains("Leve")) return Colors.greenAccent;
     if (sev.contains("Moderada")) return Colors.orangeAccent;
     return Colors.redAccent;
+  }
+
+  // --- LÓGICA MATEMÁTICA DE LA PAGINACIÓN ---
+  int get _totalPaginas => (_historialReal.length / _itemsPorPagina).ceil();
+
+  List<Map<String, dynamic>> get _itemsPaginaActual {
+    int start = (_paginaActual - 1) * _itemsPorPagina;
+    int end = min(start + _itemsPorPagina, _historialReal.length);
+    if (start >= _historialReal.length) return []; // Seguridad
+    return _historialReal.sublist(start, end);
+  }
+
+  void _cambiarPagina(int nuevaPagina) {
+    if (nuevaPagina >= 1 && nuevaPagina <= _totalPaginas) {
+      setState(() {
+        _paginaActual = nuevaPagina;
+      });
+    }
   }
 
   @override
@@ -180,7 +204,8 @@ class _HistoryViewState extends State<HistoryView> {
                                   ],
                                 ),
                               ),
-                              ..._historialReal
+                              // USAMOS LA LISTA RECORTADA (PAGINADA) EN VEZ DEL HISTORIAL COMPLETO
+                              ..._itemsPaginaActual
                                   .map((data) => _tableRow(data))
                                   .toList(),
                             ],
@@ -190,6 +215,8 @@ class _HistoryViewState extends State<HistoryView> {
                     );
                   },
                 ),
+
+                // --- BOTONES DE PAGINACIÓN DINÁMICOS ---
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
@@ -198,12 +225,65 @@ class _HistoryViewState extends State<HistoryView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.chevron_left, color: AppColors.textSoft),
-                      const SizedBox(width: 16),
-                      _pageNumber("1", isActive: true),
-                      const Icon(
-                        Icons.chevron_right,
-                        color: AppColors.textSoft,
+                      // Flecha Izquierda (Anterior)
+                      IconButton(
+                        onPressed: _paginaActual > 1
+                            ? () => _cambiarPagina(_paginaActual - 1)
+                            : null,
+                        icon: Icon(
+                          Icons.chevron_left,
+                          color: _paginaActual > 1
+                              ? AppColors.text
+                              : AppColors.textSoft.withOpacity(0.3),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Generar números de página
+                      ...List.generate(_totalPaginas, (index) {
+                        int numeroPagina = index + 1;
+                        // Lógica básica para no mostrar 100 números, solo los cercanos
+                        if (_totalPaginas > 5) {
+                          if (numeroPagina != 1 &&
+                              numeroPagina != _totalPaginas &&
+                              (numeroPagina < _paginaActual - 1 ||
+                                  numeroPagina > _paginaActual + 1)) {
+                            // Mostrar puntos suspensivos si hay saltos grandes
+                            if (numeroPagina == 2 ||
+                                numeroPagina == _totalPaginas - 1) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  "...",
+                                  style: TextStyle(color: AppColors.textSoft),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }
+                        }
+
+                        return GestureDetector(
+                          onTap: () => _cambiarPagina(numeroPagina),
+                          child: _pageNumber(
+                            numeroPagina.toString(),
+                            isActive: numeroPagina == _paginaActual,
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(width: 8),
+                      // Flecha Derecha (Siguiente)
+                      IconButton(
+                        onPressed: _paginaActual < _totalPaginas
+                            ? () => _cambiarPagina(_paginaActual + 1)
+                            : null,
+                        icon: Icon(
+                          Icons.chevron_right,
+                          color: _paginaActual < _totalPaginas
+                              ? AppColors.text
+                              : AppColors.textSoft.withOpacity(0.3),
+                        ),
                       ),
                     ],
                   ),
@@ -297,14 +377,11 @@ class _HistoryViewState extends State<HistoryView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // --- AQUÍ CONECTAMOS EL OJITO ---
                 _actionButton(
                   Icons.visibility_outlined,
                   onTap: () {
                     if (widget.onViewDetail != null) {
-                      widget.onViewDetail!(
-                        data,
-                      ); // Llama a la función del Dashboard
+                      widget.onViewDetail!(data);
                     }
                   },
                 ),
@@ -320,7 +397,6 @@ class _HistoryViewState extends State<HistoryView> {
     );
   }
 
-  // --- FUNCIÓN CORREGIDA: Ahora acepta el parámetro 'onTap' ---
   Widget _actionButton(
     IconData icon, {
     Color color = Colors.white70,
