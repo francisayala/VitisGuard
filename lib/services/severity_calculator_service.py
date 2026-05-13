@@ -3,77 +3,96 @@ import cv2
 
 class SeverityCalculatorService:
     def __init__(self, healthy_label='Healthy'):
-        # En esta nueva arquitectura, la clase Healthy de YOLO ya no se usa 
-        # para matemáticas, pero la mantenemos por si quieres mostrarla.
         self.healthy_label = healthy_label
+
+    def _get_leaf_mask(self, img):
+        """
+        Segmentación simple pero estable de hoja.
+        Mejor que Otsu en muchos casos reales.
+        """
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # rango verde (ajustable según dataset)
+        lower_green = np.array([25, 40, 40])
+        upper_green = np.array([95, 255, 255])
+
+        mask = cv2.inRange(hsv, lower_green, upper_green)
+
+        # limpieza de ruido
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+        return mask > 0
 
     def calculate_metrics(self, formatted_results, image_path):
         """
-        Calcula la severidad híbrida: YOLOv11 (Enfermedad) + OpenCV (Área Total).
+        Severidad correcta: intersección enfermedad ∩ hoja
         """
+
         if not formatted_results or not formatted_results['masks']:
-            return {"iaa": 0.0, "total_area_px": 0, "affected_area_px": 0, "pathogens": {}}
+            return {
+                "iaa": 0.0,
+                "total_area_px": 0,
+                "affected_area_px": 0,
+                "pathogens": {}
+            }
 
-        # ====================================================================
-        # 🟢 FASE 1: OpenCV - Cálculo del área total de la hoja real
-        # ====================================================================
-        # Leemos la imagen original
+        # ============================================================
+        # 🟢 1. IMAGEN BASE (UN SOLO ESPACIO DE REFERENCIA)
+        # ============================================================
         img = cv2.imread(image_path)
-        
-        # Convertimos a escala de grises
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Aplicamos un filtro Gaussiano para reducir ruido fotográfico
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        
-        # Usamos el algoritmo de Otsu para separar la hoja del fondo automáticamente
-        # Invertimos (THRESH_BINARY_INV) para que la hoja sea blanca (píxeles a contar)
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        
-        # Contamos los píxeles que pertenecen a la hoja
-        total_leaf_pixels = int(np.sum(thresh == 255))
+        img_h, img_w = img.shape[:2]
 
-        # ====================================================================
-        # 🔴 FASE 2: YOLO - Cálculo del área de la enfermedad
-        # ====================================================================
-        first_mask = formatted_results['masks'][0]
-        height, width = first_mask.shape
-        disease_canvas = np.zeros((height, width), dtype=bool)
-        disease_pixels_by_class = {}
+        # ============================================================
+        # 🟢 2. HOJA (OpenCV robusto)
+        # ============================================================
+        leaf_mask = self._get_leaf_mask(img)
+
+        # ============================================================
+        # 🔴 3. YOLO - ENFERMEDAD (alineada al tamaño real)
+        # ============================================================
+        disease_canvas = np.zeros((img_h, img_w), dtype=bool)
+        disease_by_class = {}
 
         for mask, label in zip(formatted_results['masks'], formatted_results['labels']):
-            if label != self.healthy_label:
-                binary_mask = mask > 0
-                
-                # Unificamos las máscaras enfermas para evitar contar píxeles duplicados
-                disease_canvas = np.logical_or(disease_canvas, binary_mask)
-                
-                # Registro por patógeno
-                count = int(np.sum(binary_mask))
-                disease_pixels_by_class[label] = disease_pixels_by_class.get(label, 0) + count
 
-        # Contamos los píxeles reales de enfermedad (sin duplicados)
-        affected_pixels = int(np.sum(disease_canvas))
+            if label == self.healthy_label:
+                continue
 
-        # ====================================================================
-        # 🧠 FASE 3: Matemática Científica
-        # ====================================================================
+            # resize correcto: máscara → imagen original
+            mask_resized = cv2.resize(mask.astype(np.uint8), (img_w, img_h)) > 0
+
+            disease_canvas |= mask_resized
+
+            disease_by_class[label] = disease_by_class.get(label, 0) + int(np.sum(mask_resized))
+
+        # ============================================================
+        # 🧠 4. INTERSECCIÓN REAL (CLAVE)
+        # ============================================================
+        disease_on_leaf = disease_canvas & leaf_mask
+
+        affected_pixels = int(np.sum(disease_on_leaf))
+        total_leaf_pixels = int(np.sum(leaf_mask))
+
+        # ============================================================
+        # 📊 5. MÉTRICA FINAL
+        # ============================================================
         iaa = 0.0
         if total_leaf_pixels > 0:
-            iaa = (affected_pixels / total_leaf_pixels) * 100.0
+            iaa = (affected_pixels / total_leaf_pixels) * 100
 
-        # Blindaje matemático natural
-        iaa = min(iaa, 100.0)
+        iaa = float(np.clip(iaa, 0, 100))
 
-        # Filtro de ruido visual (Ignorar si es menor a 1%)
+        # ruido mínimo
         if iaa < 1.0:
             iaa = 0.0
             affected_pixels = 0
-            disease_pixels_by_class = {}
+            disease_by_class = {}
 
         return {
             "iaa": round(iaa, 2),
             "total_area_px": total_leaf_pixels,
             "affected_area_px": affected_pixels,
-            "pathogens": disease_pixels_by_class 
+            "pathogens": disease_by_class
         }
