@@ -59,7 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _areaAfectada = data["area_afectada"] ?? 0;
       _confianza = 94.0;
       selectedIndex =
-          0; // Al cargar del historial, volvemos a la vista principal de 2 columnas
+          1; // Al cargar del historial, volvemos a la vista principal de 2 columnas
     });
   }
 
