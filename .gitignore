@@ -1,54 +1,64 @@
-# Dependecias para el proyecto
-vitisguardvenv/
-
-# Archivos de configuración de Visual Studio Code
-.vscode/
-
 # ==========================================
-# 📱 FLUTTER Y DART
-# ==========================================
-# Archivos de compilación y caché
-.dart_tool/
-build/
-.packages
-.pub-cache/
-.pub/
-
-# Archivos autogenerados de Android/iOS
-/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
-*.jks
-*.keystore
-
-# ==========================================
-# 🧠 PYTHON E INTELIGENCIA ARTIFICIAL (Backend)
+# 🧠 PYTHON / IA
 # ==========================================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
 venv/
 env/
+vitisguardvenv/
+
 .env
 
-# No subir los modelos de IA si pesan demasiado (Opcional, quita el # si pesan más de 100MB)
-# *.pt
-# *.h5
-# *.onnx
+# Modelos IA pesados
+*.pt
+*.pth
+*.onnx
+*.h5
 
 # ==========================================
-# 🗄️ BASE DE DATOS LOCAL
+# 📱 FLUTTER / DART
 # ==========================================
-# Ignoramos la base de datos de pruebas para que nadie más la descargue
+.dart_tool/
+build/
+.packages
+.pub/
+.pub-cache/
+
+# Flutter generated
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ==========================================
+# 🗄️ BASES DE DATOS
+# ==========================================
 *.db
 *.sqlite
 *.sqlite3
 vitisguard*.db
 
 # ==========================================
-# 💻 IDEs Y SISTEMA OPERATIVO
+# 📂 ARCHIVOS TEMPORALES
+# ==========================================
+data/temp_uploads/
+
+# ==========================================
+# 💻 IDEs
 # ==========================================
 .vscode/
 .idea/
 *.iml
+
+# ==========================================
+# 🖥️ SISTEMA OPERATIVO
+# ==========================================
 .DS_Store
 Thumbs.db
+
+# ==========================================
+# 🔐 CLAVES / FIRMAS
+# ==========================================
+*.jks
+*.keystore
