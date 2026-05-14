@@ -184,7 +184,7 @@ class _ModelosViewState extends State<ModelosView> {
       String descripcionFinal = descController.text.trim();
       if (descripcionFinal.isEmpty) {
         descripcionFinal =
-            "Modelo personalizado importado por el usuario.\nRuta local: $filePath";
+            "Modelo personalizado importado por el usuario.\nRuta local: $filePath"; //traducir!!!!
       } else {
         descripcionFinal = "$descripcionFinal\n\nRuta local: $filePath";
       }
@@ -200,8 +200,10 @@ class _ModelosViewState extends State<ModelosView> {
           // AQUÍ USAMOS LOS NUEVOS DATOS:
           "precision": precController.text.isEmpty
               ? "N/A"
-              : precController.text,
-          "imagenes": imgController.text.isEmpty ? "?" : imgController.text,
+              : "${precController.text}%",
+          "imagenes": imgController.text.isEmpty
+              ? "?"
+              : "${imgController.text} ${l10n.imagenes}",
           "fecha": fechaHoy,
           "detalles": descripcionFinal,
         });
