@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../services/database_helper.dart';
 import '../l10n/app_localizations.dart';
 import 'dotted_border.dart';
+import '../widgets/global_state.dart';
 
 class UploadPanel extends StatefulWidget {
   final Function(
@@ -97,6 +98,9 @@ class _UploadPanelState extends State<UploadPanel> {
       );
 
       request.files.add(await http.MultipartFile.fromPath('file', imagen.path));
+
+      // --- NUEVO: Flutter le dice a Python qué modelo usar ---
+      request.fields['model_name'] = modeloActivoGlobal.value;
 
       var streamedResponse = await request.send();
 
