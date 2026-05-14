@@ -114,6 +114,10 @@
   "descripcionModelo": "Write a description for this model:",
   "descripcionModeloHint": "Example: Model trained with infected grapevine leaves...",
   "botonGuardarDescripcion": "Save Description",
-  "botonCancelarDescripcion": "Cancel"
+  "botonCancelarDescripcion": "Cancel",
+  "campoPrecision": "Precision (example, 94.2%)",
+  "campoPrecisionHint": "95%",
+  "campoImagenes": "Number of images",
+  "campoImagenesHint": "10,000"
   
 }

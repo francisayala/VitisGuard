@@ -336,4 +336,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get botonCancelarDescripcion => 'Cancelar';
+
+  @override
+  String get campoPrecision => 'Precisión (ej: 94.2%)';
+
+  @override
+  String get campoPrecisionHint => '95%';
+
+  @override
+  String get campoImagenes => 'Cantidad de imágenes';
+
+  @override
+  String get campoImagenesHint => '10,000';
 }

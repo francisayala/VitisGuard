@@ -334,4 +334,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get botonCancelarDescripcion => 'Отмена';
+
+  @override
+  String get campoPrecision => 'Точность (пример: 94.2%)';
+
+  @override
+  String get campoPrecisionHint => '95%';
+
+  @override
+  String get campoImagenes => 'Количество изображений';
+
+  @override
+  String get campoImagenesHint => '10,000';
 }

@@ -114,6 +114,10 @@
   "descripcionModelo": "Escribe una descripción para este modelo:",
   "descripcionModeloHint": "Ej. Modelo entrenado con hojas de viña infectadas...",
   "botonGuardarDescripcion": "Guardar",
-  "botonCancelarDescripcion": "Cancelar"
+  "botonCancelarDescripcion": "Cancelar",
+  "campoPrecision": "Precisión (ej: 94.2%)",
+  "campoPrecisionHint": "95%",
+  "campoImagenes": "Cantidad de imágenes",
+  "campoImagenesHint": "10,000"
 
 }

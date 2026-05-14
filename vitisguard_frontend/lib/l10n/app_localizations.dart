@@ -741,6 +741,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cancelar'**
   String get botonCancelarDescripcion;
+
+  /// No description provided for @campoPrecision.
+  ///
+  /// In es, this message translates to:
+  /// **'Precisión (ej: 94.2%)'**
+  String get campoPrecision;
+
+  /// No description provided for @campoPrecisionHint.
+  ///
+  /// In es, this message translates to:
+  /// **'95%'**
+  String get campoPrecisionHint;
+
+  /// No description provided for @campoImagenes.
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad de imágenes'**
+  String get campoImagenes;
+
+  /// No description provided for @campoImagenesHint.
+  ///
+  /// In es, this message translates to:
+  /// **'10,000'**
+  String get campoImagenesHint;
 }
 
 class _AppLocalizationsDelegate

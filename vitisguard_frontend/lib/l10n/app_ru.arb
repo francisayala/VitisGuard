@@ -114,5 +114,9 @@
   "descripcionModelo": "Напишите описание для этой модели:",
   "descripcionModeloHint": "Пример: Модель, обученная на зараженных листьях виноградной лозы...",
   "botonGuardarDescripcion": "Сохранить",
-  "botonCancelarDescripcion": "Отмена"
+  "botonCancelarDescripcion": "Отмена",
+  "campoPrecision": "Точность (пример: 94.2%)",
+  "campoPrecisionHint": "95%",
+  "campoImagenes": "Количество изображений",
+  "campoImagenesHint": "10,000"
 }

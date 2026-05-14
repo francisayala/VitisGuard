@@ -5,6 +5,7 @@ import 'glass_card.dart';
 import 'responsive.dart';
 import 'dotted_border.dart';
 import '../l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
 
 class ModelosView extends StatefulWidget {
   const ModelosView({super.key});
@@ -65,89 +66,109 @@ class _ModelosViewState extends State<ModelosView> {
   Future<void> _importarModelo(AppLocalizations l10n) async {
     FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: [
-        'h5',
-        'pt',
-        'pb',
-        'txt',
-      ], // Formatos de IA (y txt para pruebas)
+      allowedExtensions: ['h5', 'pt', 'pb', 'txt'],
     );
 
-    // Si el usuario seleccionó un archivo
     if (result != null) {
       String fileName = result.files.single.name;
       String filePath = result.files.single.path ?? "Ruta desconocida";
 
-      // 1. CREAMOS UN CONTROLADOR PARA LA CAJA DE TEXTO
       TextEditingController descController = TextEditingController();
+      TextEditingController precController = TextEditingController();
+      TextEditingController imgController = TextEditingController();
 
-      // 2. MOSTRAMOS EL POPUP (CUADRO DE DIÁLOGO)
-      // Esperamos a ver qué responde el usuario (true = Guardar, false/null = Cancelar)
       bool? confirmar = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: const Color(
-              0xFF1A1F24,
-            ), // Un tono oscuro para que combine con tu app
+            backgroundColor: const Color(0xFF1A1F24),
             title: Text(
               l10n.detallesDelModelo,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize
-                  .min, // Para que el cuadro no ocupe toda la pantalla
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.archivoModelo(fileName),
-                  style: const TextStyle(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.descripcionModelo,
-                  style: TextStyle(color: AppColors.textSoft, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                // La caja donde vas a escribir
-                TextField(
-                  controller: descController,
-                  maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: l10n.descripcionModeloHint,
-                    hintStyle: const TextStyle(color: Colors.white38),
-                    enabledBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.accent),
+            content: SingleChildScrollView(
+              // Añadimos scroll por si el teclado tapa los campos
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.archivoModelo(fileName),
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // --- CAMPO DESCRIPCIÓN ---
+                  Text(
+                    l10n.descripcionModelo,
+                    style: const TextStyle(
+                      color: AppColors.textSoft,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPopupTextField(
+                    descController,
+                    l10n.descripcionModeloHint,
+                    maxLines: 3,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // --- CAMPO PRECISIÓN ---
+                  Text(
+                    l10n.campoPrecision,
+                    style: const TextStyle(
+                      color: AppColors.textSoft,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPopupTextField(
+                    precController,
+                    l10n.campoPrecisionHint,
+                    isNumber: true,
+                    isPercent: true,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // --- CAMPO IMÁGENES ---
+                  Text(
+                    l10n.campoImagenes,
+                    style: const TextStyle(
+                      color: AppColors.textSoft,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPopupTextField(
+                    imgController,
+                    l10n.campoImagenesHint,
+                    isNumber: true,
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(false), // Botón Cancelar
+                onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
                   l10n.botonCancelarDescripcion,
-                  style: TextStyle(color: AppColors.textSoft),
+                  style: const TextStyle(color: AppColors.textSoft),
                 ),
               ),
               ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(true), // Botón Guardar
+                onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                 ),
                 child: Text(
                   l10n.botonGuardarDescripcion,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -158,18 +179,13 @@ class _ModelosViewState extends State<ModelosView> {
         },
       );
 
-      // Si el usuario presionó "Cancelar" o hizo clic afuera del cuadro, detenemos todo aquí.
       if (confirmar != true) return;
 
-      // 3. ARMAMOS LA DESCRIPCIÓN FINAL
       String descripcionFinal = descController.text.trim();
-
-      // Si el usuario le dio a guardar pero no escribió nada, le ponemos una por defecto
       if (descripcionFinal.isEmpty) {
         descripcionFinal =
             "Modelo personalizado importado por el usuario.\nRuta local: $filePath";
       } else {
-        // Si sí escribió, le pegamos la ruta de tu PC al final para que no se pierda el dato
         descripcionFinal = "$descripcionFinal\n\nRuta local: $filePath";
       }
 
@@ -177,15 +193,17 @@ class _ModelosViewState extends State<ModelosView> {
       final fechaHoy =
           "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
 
-      // 4. AGREGAMOS EL MODELO A LA LISTA CON TU TEXTO
       setState(() {
         _modelos.add({
           "nombre": fileName,
           "tipo": "Personalizado",
-          "precision": "Evaluando...",
-          "imagenes": "?",
+          // AQUÍ USAMOS LOS NUEVOS DATOS:
+          "precision": precController.text.isEmpty
+              ? "N/A"
+              : precController.text,
+          "imagenes": imgController.text.isEmpty ? "?" : imgController.text,
           "fecha": fechaHoy,
-          "detalles": descripcionFinal, // <--- AQUÍ SE INYECTA TU TEXTO
+          "detalles": descripcionFinal,
         });
       });
 
@@ -198,6 +216,46 @@ class _ModelosViewState extends State<ModelosView> {
         );
       }
     }
+  }
+
+  // FUNCIÓN AUXILIAR PARA NO REPETIR CÓDIGO DE DISEÑO DE LOS TEXTFIELDS
+  Widget _buildPopupTextField(
+    TextEditingController controller,
+    String hint, {
+    int maxLines = 1,
+    bool isNumber = false,
+    bool isPercent = false,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: isNumber
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      style: const TextStyle(color: Colors.white),
+      inputFormatters: [
+        if (isNumber && !isPercent)
+          FilteringTextInputFormatter
+              .digitsOnly, // Solo números enteros para imágenes
+        if (isPercent) ...[
+          FilteringTextInputFormatter.allow(
+            RegExp(r'^\d*\.?\d*'),
+          ), // Permite números y un punto decimal
+          _Max100Formatter(), // Nuestro validador personalizado para el 100%
+        ],
+      ],
+
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        enabledBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.accent),
+        ),
+      ),
+    );
   }
 
   @override
@@ -536,5 +594,28 @@ class _ModelosViewState extends State<ModelosView> {
         ),
       ),
     );
+  }
+}
+
+// Esta clase revisa que el número no pase de 100
+class _Max100Formatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    double? value = double.tryParse(newValue.text);
+    if (value == null)
+      return oldValue; // Si no es un número válido, no deja escribir
+
+    if (value > 100) {
+      return const TextEditingValue(
+        text: "100",
+        selection: TextSelection.collapsed(offset: 3),
+      );
+    }
+    return newValue;
   }
 }
