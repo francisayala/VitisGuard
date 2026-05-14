@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../l10n/app_localizations.dart'; // <--- Importamos los idiomas
+import '../l10n/app_localizations.dart';
+import '../widgets/global_state.dart';
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
@@ -70,13 +71,19 @@ class Sidebar extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          l10n.modeloCNN, // <--- TRADUCIDO
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textSoft,
-                            fontSize: 12,
-                          ),
+                        // NUEVO CÓDIGO: El Sidebar escucha los cambios en vivo
+                        ValueListenableBuilder<String>(
+                          valueListenable: modeloActivoGlobal,
+                          builder: (context, nombreDelModelo, child) {
+                            return Text(
+                              nombreDelModelo, // Aquí se imprime lo que diga el Walkie-Talkie
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textSoft,
+                                fontSize: 12,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

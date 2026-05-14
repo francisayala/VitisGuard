@@ -7,6 +7,7 @@ import 'dotted_border.dart';
 import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import '../services/database_helper.dart';
+import '../widgets/global_state.dart';
 
 class ModelosView extends StatefulWidget {
   const ModelosView({super.key});
@@ -17,7 +18,6 @@ class ModelosView extends StatefulWidget {
 
 class _ModelosViewState extends State<ModelosView> {
   // --- ESTADO INTERACTIVO ---
-  int _modeloActivoIndex = 0;
   int? _expandedIndex;
 
   // ¡OJO AQUÍ! Sin la palabra "final" para que podamos agregarle modelos después
@@ -33,6 +33,14 @@ class _ModelosViewState extends State<ModelosView> {
 
   Future<void> _cargarModelos() async {
     final datos = await DatabaseHelper().getModelos();
+
+    // --- NUEVO: Buscamos cuál es el modelo activo y lo avisamos ---
+    for (var modelo in datos) {
+      if (modelo['activo'] == 1) {
+        modeloActivoGlobal.value = modelo['nombre']; // ¡Le hablamos al Sidebar!
+        break; // Como ya lo encontramos, detenemos la búsqueda
+      }
+    }
     setState(() {
       _modelos = datos;
       _isLoading = false;
