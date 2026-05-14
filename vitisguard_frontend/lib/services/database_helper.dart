@@ -22,11 +22,11 @@ class DatabaseHelper {
     databaseFactory = databaseFactoryFfi;
 
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "vitisguard_v4.db");
+    String path = join(documentsDirectory.path, "vitisguard_v6.db");
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE historial (
@@ -50,6 +50,34 @@ class DatabaseHelper {
                 FOREIGN KEY (analisis_id) REFERENCES historial (id)
           )
         ''');
+        await db.execute('''
+        CREATE TABLE modelos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT,
+          tipo TEXT,
+          precision TEXT,
+          imagenes TEXT,
+          fecha TEXT,
+          detalles TEXT,
+          activo INTEGER DEFAULT 0 
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+              CREATE TABLE IF NOT EXISTS modelos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT,
+                tipo TEXT,
+                precision TEXT,
+                imagenes TEXT,
+                fecha TEXT,
+                detalles TEXT,
+                activo INTEGER DEFAULT 0
+              )
+            ''');
+        }
       },
     );
   }
@@ -74,5 +102,32 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> obtenerReportes() async {
     Database db = await database;
     return await db.query('reportes', orderBy: "id DESC");
+  }
+
+  // Obtener todos los modelos
+  Future<List<Map<String, dynamic>>> getModelos() async {
+    final db = await database;
+    return await db.query('modelos');
+  }
+
+  // Insertar un nuevo modelo
+  Future<int> insertarModelo(Map<String, dynamic> modelo) async {
+    final db = await database;
+    return await db.insert('modelos', modelo);
+  }
+
+  // Activar un modelo y desactivar el resto
+  Future<void> activarModelo(int id) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      await txn.update('modelos', {'activo': 0});
+      await txn.update(
+        'modelos',
+        {'activo': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   }
 }

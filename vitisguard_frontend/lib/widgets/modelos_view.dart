@@ -6,6 +6,7 @@ import 'responsive.dart';
 import 'dotted_border.dart';
 import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
+import '../services/database_helper.dart';
 
 class ModelosView extends StatefulWidget {
   const ModelosView({super.key});
@@ -21,45 +22,21 @@ class _ModelosViewState extends State<ModelosView> {
 
   // ¡OJO AQUÍ! Sin la palabra "final" para que podamos agregarle modelos después
   List<Map<String, dynamic>> _modelos = [];
-  bool _inicializado = false;
+
+  bool _isLoading = true;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Llenamos la lista la primera vez que se abre la pantalla
-    if (!_inicializado) {
-      // final l10n = AppLocalizations.of(context)!; // Lo usaremos luego para los detalles si quieres
-      _modelos = [
-        {
-          "nombre": "VitisGuard CNN v1.2",
-          "tipo": "CNN",
-          "precision": "94.2%",
-          "imagenes": "15,230",
-          "fecha": "10/05/2024",
-          "detalles":
-              "Modelo más reciente con arquitectura optimizada para detección temprana de Oídio y Mildiu. Se añadieron 2,780 imágenes nuevas al dataset de entrenamiento para mejorar la precisión en hojas jóvenes.",
-        },
-        {
-          "nombre": "VitisGuard CNN v1.1",
-          "tipo": "CNN",
-          "precision": "91.1%",
-          "imagenes": "12,450",
-          "fecha": "15/12/2023",
-          "detalles":
-              "Versión estable anterior. Buen rendimiento general pero con un 3% de falsos positivos en condiciones de alta iluminación.",
-        },
-        {
-          "nombre": "VitisGuard Mobile v1.0",
-          "tipo": "MobileNet",
-          "precision": "88.7%",
-          "imagenes": "8,700",
-          "fecha": "20/11/2023",
-          "detalles":
-              "Modelo ligero diseñado para dispositivos móviles con bajos recursos. La inferencia es 2 veces más rápida pero sacrifica un poco de precisión.",
-        },
-      ];
-      _inicializado = true;
-    }
+  void initState() {
+    super.initState();
+    _cargarModelos();
+  }
+
+  Future<void> _cargarModelos() async {
+    final datos = await DatabaseHelper().getModelos();
+    setState(() {
+      _modelos = datos;
+      _isLoading = false;
+    });
   }
 
   // --- LÓGICA REAL: Seleccionar y agregar archivo de modelo ---
@@ -193,21 +170,26 @@ class _ModelosViewState extends State<ModelosView> {
       final fechaHoy =
           "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
 
-      setState(() {
-        _modelos.add({
-          "nombre": fileName,
-          "tipo": "Personalizado",
-          // AQUÍ USAMOS LOS NUEVOS DATOS:
-          "precision": precController.text.isEmpty
-              ? "N/A"
-              : "${precController.text}%",
-          "imagenes": imgController.text.isEmpty
-              ? "?"
-              : "${imgController.text} ${l10n.imagenes}",
-          "fecha": fechaHoy,
-          "detalles": descripcionFinal,
-        });
-      });
+      // 1. PREPARAMOS LOS DATOS
+      final nuevoModelo = {
+        "nombre": fileName,
+        "tipo": "Personalizado",
+        "precision": precController.text.isEmpty
+            ? "N/A"
+            : "${precController.text}%",
+        "imagenes": imgController.text.isEmpty
+            ? "?"
+            : "${imgController.text} ${l10n.imagenes}",
+        "fecha": fechaHoy,
+        "detalles": descripcionFinal,
+        "activo": 0, // 0 significa Inactivo en SQLite
+      };
+
+      // 2. GUARDAMOS EN SQLITE (TU BASE DE DATOS)
+      await DatabaseHelper().insertarModelo(nuevoModelo);
+
+      // 3. RECARGAMOS LA PANTALLA
+      _cargarModelos();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -279,14 +261,27 @@ class _ModelosViewState extends State<ModelosView> {
         ),
         const SizedBox(height: 24),
 
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _modelos.length,
-          itemBuilder: (context, index) {
-            return _buildModelCard(_modelos[index], index, isMobile, l10n);
-          },
-        ),
+        if (_isLoading)
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.accent),
+          )
+        else if (_modelos.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              "No hay modelos disponibles. Importa uno nuevo.",
+              style: TextStyle(color: AppColors.textSoft),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _modelos.length,
+            itemBuilder: (context, index) {
+              return _buildModelCard(_modelos[index], index, isMobile, l10n);
+            },
+          ),
 
         const SizedBox(height: 10),
         _buildImportArea(isMobile, l10n),
@@ -300,7 +295,7 @@ class _ModelosViewState extends State<ModelosView> {
     bool isMobile,
     AppLocalizations l10n,
   ) {
-    final bool isActivo = _modeloActivoIndex == index;
+    final bool isActivo = modelo['activo'] == 1;
     final bool isExpanded = _expandedIndex == index;
 
     return Container(
@@ -333,7 +328,7 @@ class _ModelosViewState extends State<ModelosView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildStatusBadge(isActivo, index, l10n),
+                          _buildStatusBadge(modelo, isActivo, index, l10n),
                           _buildDetailsButton(isExpanded, index, l10n),
                         ],
                       ),
@@ -363,7 +358,7 @@ class _ModelosViewState extends State<ModelosView> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          _buildStatusBadge(isActivo, index, l10n),
+                          _buildStatusBadge(modelo, isActivo, index, l10n),
                           const SizedBox(height: 12),
                           _buildDetailsButton(isExpanded, index, l10n),
                         ],
@@ -448,7 +443,12 @@ class _ModelosViewState extends State<ModelosView> {
     );
   }
 
-  Widget _buildStatusBadge(bool isActivo, int index, AppLocalizations l10n) {
+  Widget _buildStatusBadge(
+    Map<String, dynamic> modelo,
+    bool isActivo,
+    int index,
+    AppLocalizations l10n,
+  ) {
     if (isActivo) {
       return Row(
         children: [
@@ -466,7 +466,10 @@ class _ModelosViewState extends State<ModelosView> {
       );
     } else {
       return ElevatedButton(
-        onPressed: () => setState(() => _modeloActivoIndex = index),
+        onPressed: () async {
+          await DatabaseHelper().activarModelo(modelo['id']);
+          _cargarModelos();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           elevation: 0,
