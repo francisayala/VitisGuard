@@ -699,6 +699,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'El archivo no se encuentra. ¿Fue borrado manualmente?'**
   String get errorNoseEncuentraArchivo;
+
+  /// No description provided for @descripcionAdicional.
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción / Notas adicionales:'**
+  String get descripcionAdicional;
 }
 
 class _AppLocalizationsDelegate

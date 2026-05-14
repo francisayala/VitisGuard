@@ -99,6 +99,7 @@
   "continuarAnalisis": "Continue with the analysis",
   "errorComunicacion": "Error communicating with the server. Please try again.",
   "errorGenerarArchivo": "You haven't generated any reports yet.",
-  "errorNoseEncuentraArchivo": "The file is not found. Was it manually deleted?"
+  "errorNoseEncuentraArchivo": "The file is not found. Was it manually deleted?",
+  "descripcionAdicional": "Description / Additional Notes:"
   
 }

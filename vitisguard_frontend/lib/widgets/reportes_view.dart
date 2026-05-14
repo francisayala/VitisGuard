@@ -70,8 +70,8 @@ class _ReportesViewState extends State<ReportesView> {
     final pdf = pw.Document();
 
     // 1. Cargamos fuentes que soporten Ruso, Español e Inglés
-    final fuenteNormal = await PdfGoogleFonts.robotoRegular();
-    final fuenteNegrita = await PdfGoogleFonts.robotoBold();
+    final fuenteNormal = await PdfGoogleFonts.openSansRegular();
+    final fuenteNegrita = await PdfGoogleFonts.openSansBold();
 
     // 2. Preparamos la imagen si está seleccionada
     pw.ImageProvider? imageProvider;
@@ -135,6 +135,24 @@ class _ReportesViewState extends State<ReportesView> {
               pw.SizedBox(height: 10),
               pw.Divider(thickness: 1.5),
               pw.SizedBox(height: 20),
+
+              // --- INICIO: SECCIÓN DE LA DESCRIPCIÓN ---
+              if (_descController.text.isNotEmpty) ...[
+                pw.Text(
+                  l10n.descripcionAdicional,
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  _descController.text,
+                  style: const pw.TextStyle(fontSize: 12),
+                ),
+                pw.SizedBox(height: 20),
+              ],
 
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,

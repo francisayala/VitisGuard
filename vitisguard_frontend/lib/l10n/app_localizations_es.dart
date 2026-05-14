@@ -312,4 +312,7 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errorNoseEncuentraArchivo =>
       'El archivo no se encuentra. ¿Fue borrado manualmente?';
+
+  @override
+  String get descripcionAdicional => 'Descripción / Notas adicionales:';
 }

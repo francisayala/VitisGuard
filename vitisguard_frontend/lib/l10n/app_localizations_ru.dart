@@ -310,4 +310,7 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get errorNoseEncuentraArchivo =>
       'Файл не найден. Был ли он удален вручную?';
+
+  @override
+  String get descripcionAdicional => 'Описание / Дополнительные примечания:';
 }

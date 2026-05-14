@@ -310,4 +310,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorNoseEncuentraArchivo =>
       'The file is not found. Was it manually deleted?';
+
+  @override
+  String get descripcionAdicional => 'Description / Additional Notes:';
 }

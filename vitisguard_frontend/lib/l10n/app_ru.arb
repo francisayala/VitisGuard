@@ -99,5 +99,6 @@
   "continuarAnalisis": "Продолжить анализ",
   "errorComunicacion": "Ошибка связи с сервером. Пожалуйста, попробуйте снова.",
   "errorGenerarArchivo": "Вы еще не создали отчеты.",
-  "errorNoseEncuentraArchivo": "Файл не найден. Был ли он удален вручную?"
+  "errorNoseEncuentraArchivo": "Файл не найден. Был ли он удален вручную?",
+  "descripcionAdicional": "Описание / Дополнительные примечания:"
 }
