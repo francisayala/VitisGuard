@@ -248,7 +248,7 @@ class _ReportesViewState extends State<ReportesView> {
   @override
   Widget build(BuildContext context) {
     final bool isMobile = Responsive.isMobile(context);
-    final l10n = AppLocalizations.of(context)!; // <--- Inicializamos el L10N
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,53 +261,53 @@ class _ReportesViewState extends State<ReportesView> {
             fontWeight: FontWeight.bold,
           ),
         ),
+
         const SizedBox(height: 20),
+
+        // ================= PESTAÑAS INTERACTIVAS =================
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.only(bottom: 8),
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: AppColors.accent, width: 2),
-                ),
-              ),
-              child: Text(
-                l10n.tabGenerar,
-                style: const TextStyle(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+            _buildTab(
+              l10n.tabGenerar,
+              !_verMisReportes,
+              () => setState(() => _verMisReportes = false),
             ),
+
             const SizedBox(width: 24),
-            Text(
+
+            _buildTab(
               l10n.tabMisReportes,
-              style: const TextStyle(color: AppColors.textSoft, fontSize: 16),
+              _verMisReportes,
+              () => setState(() => _verMisReportes = true),
             ),
           ],
         ),
+
         const SizedBox(height: 30),
         const Divider(color: Colors.white10, height: 1),
         const SizedBox(height: 30),
 
-        // ================= CUERPO PRINCIPAL =================
-        isMobile
-            ? Column(
-                children: [
-                  _buildFormulario(l10n),
-                  const SizedBox(height: 40),
-                  _buildVistaPrevia(l10n),
-                ],
-              )
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 4, child: _buildFormulario(l10n)),
-                  const SizedBox(width: 40),
-                  Expanded(flex: 6, child: _buildVistaPrevia(l10n)),
-                ],
-              ),
+        // ================= CAMBIO DINÁMICO DE VISTA =================
+        _verMisReportes
+            ? _buildListaReportesReal(l10n)
+            : (isMobile
+                  ? Column(
+                      children: [
+                        _buildFormulario(l10n),
+                        const SizedBox(height: 40),
+                        _buildVistaPrevia(l10n),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 4, child: _buildFormulario(l10n)),
+
+                        const SizedBox(width: 40),
+
+                        Expanded(flex: 6, child: _buildVistaPrevia(l10n)),
+                      ],
+                    )),
       ],
     );
   }
@@ -685,6 +685,143 @@ class _ReportesViewState extends State<ReportesView> {
             label,
             style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ================= TAB INTERACTIVO =================
+  Widget _buildTab(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: active ? AppColors.accent : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? AppColors.accent : AppColors.textSoft,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= LISTA REAL DE REPORTES =================
+  Widget _buildListaReportesReal(AppLocalizations l10n) {
+    if (_misReportesGuardados.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.folder_open, size: 70, color: AppColors.textSoft),
+
+            const SizedBox(height: 20),
+
+            Text(
+              l10n.tabMisReportes,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              "Todavía no has generado reportes.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSoft, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.tabMisReportes,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 20),
+
+          ...List.generate(_misReportesGuardados.length, (index) {
+            final reporte = _misReportesGuardados[index];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.picture_as_pdf,
+                    color: Colors.redAccent,
+                    size: 34,
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          reporte['nombre_archivo'] ?? 'Reporte.pdf',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          reporte['fecha_creacion'] ?? '',
+                          style: const TextStyle(
+                            color: AppColors.textSoft,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.visibility, color: AppColors.accent),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
