@@ -313,4 +313,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get descripcionAdicional => 'Description / Additional Notes:';
+
+  @override
+  String get detallesDelModelo => 'Model Details';
+
+  @override
+  String archivoModelo(String fileName) {
+    return 'File: $fileName';
+  }
+
+  @override
+  String get descripcionModelo => 'Write a description for this model:';
+
+  @override
+  String get descripcionModeloHint =>
+      'Example: Model trained with infected grapevine leaves...';
+
+  @override
+  String get botonGuardarDescripcion => 'Save Description';
+
+  @override
+  String get botonCancelarDescripcion => 'Cancel';
 }

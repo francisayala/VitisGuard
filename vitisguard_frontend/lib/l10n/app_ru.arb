@@ -100,5 +100,19 @@
   "errorComunicacion": "Ошибка связи с сервером. Пожалуйста, попробуйте снова.",
   "errorGenerarArchivo": "Вы еще не создали отчеты.",
   "errorNoseEncuentraArchivo": "Файл не найден. Был ли он удален вручную?",
-  "descripcionAdicional": "Описание / Дополнительные примечания:"
+  "descripcionAdicional": "Описание / Дополнительные примечания:",
+  "detallesDelModelo": "Детали модели",
+  "archivoModelo": "Файл: {fileName}",
+  "@archivoModelo": {
+    "description": "Введите имя выбранного файла.",
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "descripcionModelo": "Напишите описание для этой модели:",
+  "descripcionModeloHint": "Пример: Модель, обученная на зараженных листьях виноградной лозы...",
+  "botonGuardarDescripcion": "Сохранить",
+  "botonCancelarDescripcion": "Отмена"
 }

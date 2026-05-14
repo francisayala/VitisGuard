@@ -100,6 +100,20 @@
   "errorComunicacion": "Error communicating with the server. Please try again.",
   "errorGenerarArchivo": "You haven't generated any reports yet.",
   "errorNoseEncuentraArchivo": "The file is not found. Was it manually deleted?",
-  "descripcionAdicional": "Description / Additional Notes:"
+  "descripcionAdicional": "Description / Additional Notes:",
+  "detallesDelModelo": "Model Details",
+  "archivoModelo": "File: {fileName}",
+  "@archivoModelo": {
+    "description": "Indicates the name of the selected file",
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "descripcionModelo": "Write a description for this model:",
+  "descripcionModeloHint": "Example: Model trained with infected grapevine leaves...",
+  "botonGuardarDescripcion": "Save Description",
+  "botonCancelarDescripcion": "Cancel"
   
 }

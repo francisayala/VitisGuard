@@ -313,4 +313,25 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get descripcionAdicional => 'Описание / Дополнительные примечания:';
+
+  @override
+  String get detallesDelModelo => 'Детали модели';
+
+  @override
+  String archivoModelo(String fileName) {
+    return 'Файл: $fileName';
+  }
+
+  @override
+  String get descripcionModelo => 'Напишите описание для этой модели:';
+
+  @override
+  String get descripcionModeloHint =>
+      'Пример: Модель, обученная на зараженных листьях виноградной лозы...';
+
+  @override
+  String get botonGuardarDescripcion => 'Сохранить';
+
+  @override
+  String get botonCancelarDescripcion => 'Отмена';
 }

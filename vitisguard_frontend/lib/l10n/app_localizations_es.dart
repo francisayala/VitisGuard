@@ -315,4 +315,25 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get descripcionAdicional => 'Descripción / Notas adicionales:';
+
+  @override
+  String get detallesDelModelo => 'Detalles del modelo';
+
+  @override
+  String archivoModelo(String fileName) {
+    return 'Archivo: $fileName';
+  }
+
+  @override
+  String get descripcionModelo => 'Escribe una descripción para este modelo:';
+
+  @override
+  String get descripcionModeloHint =>
+      'Ej. Modelo entrenado con hojas de viña infectadas...';
+
+  @override
+  String get botonGuardarDescripcion => 'Guardar';
+
+  @override
+  String get botonCancelarDescripcion => 'Cancelar';
 }

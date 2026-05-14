@@ -705,6 +705,42 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Descripción / Notas adicionales:'**
   String get descripcionAdicional;
+
+  /// No description provided for @detallesDelModelo.
+  ///
+  /// In es, this message translates to:
+  /// **'Detalles del modelo'**
+  String get detallesDelModelo;
+
+  /// Indica el nombre del archivo seleccionado
+  ///
+  /// In es, this message translates to:
+  /// **'Archivo: {fileName}'**
+  String archivoModelo(String fileName);
+
+  /// No description provided for @descripcionModelo.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe una descripción para este modelo:'**
+  String get descripcionModelo;
+
+  /// No description provided for @descripcionModeloHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej. Modelo entrenado con hojas de viña infectadas...'**
+  String get descripcionModeloHint;
+
+  /// No description provided for @botonGuardarDescripcion.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar'**
+  String get botonGuardarDescripcion;
+
+  /// No description provided for @botonCancelarDescripcion.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get botonCancelarDescripcion;
 }
 
 class _AppLocalizationsDelegate
