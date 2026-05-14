@@ -303,4 +303,11 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get errorComunicacion =>
       'Ошибка связи с сервером. Пожалуйста, попробуйте снова.';
+
+  @override
+  String get errorGenerarArchivo => 'Вы еще не создали отчеты.';
+
+  @override
+  String get errorNoseEncuentraArchivo =>
+      'Файл не найден. Был ли он удален вручную?';
 }

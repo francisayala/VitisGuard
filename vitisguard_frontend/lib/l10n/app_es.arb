@@ -97,5 +97,7 @@
   "modeloCNN": "Modelo CNN v1.2",
   "mensajeGuardado": "Análisis guardado en el historial local",
   "continuarAnalisis": "Continuar con el análisis",
-  "errorComunicacion": "Error comunicándose con el servidor. Por favor, intenta nuevamente." 
+  "errorComunicacion": "Error comunicándose con el servidor. Por favor, intenta nuevamente.",
+  "errorGenerarArchivo": "Todavía no has generado reportes.",
+  "errorNoseEncuentraArchivo": "El archivo no se encuentra. ¿Fue borrado manualmente?"
 }

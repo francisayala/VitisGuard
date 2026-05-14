@@ -97,5 +97,7 @@
   "modeloCNN": "Модель CNN v1.2",
   "mensajeGuardado": "Анализ сохранен в локальную историю",
   "continuarAnalisis": "Продолжить анализ",
-  "errorComunicacion": "Ошибка связи с сервером. Пожалуйста, попробуйте снова."
+  "errorComunicacion": "Ошибка связи с сервером. Пожалуйста, попробуйте снова.",
+  "errorGenerarArchivo": "Вы еще не создали отчеты.",
+  "errorNoseEncuentraArchivo": "Файл не найден. Был ли он удален вручную?"
 }

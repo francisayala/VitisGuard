@@ -303,4 +303,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorComunicacion =>
       'Error communicating with the server. Please try again.';
+
+  @override
+  String get errorGenerarArchivo => 'You haven\'t generated any reports yet.';
+
+  @override
+  String get errorNoseEncuentraArchivo =>
+      'The file is not found. Was it manually deleted?';
 }

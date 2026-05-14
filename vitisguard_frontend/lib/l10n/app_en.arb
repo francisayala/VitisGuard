@@ -97,6 +97,8 @@
   "modeloCNN": "CNN Model v1.2",
   "mensajeGuardado": "Analysis saved to local history",
   "continuarAnalisis": "Continue with the analysis",
-  "errorComunicacion": "Error communicating with the server. Please try again." 
+  "errorComunicacion": "Error communicating with the server. Please try again.",
+  "errorGenerarArchivo": "You haven't generated any reports yet.",
+  "errorNoseEncuentraArchivo": "The file is not found. Was it manually deleted?"
   
 }

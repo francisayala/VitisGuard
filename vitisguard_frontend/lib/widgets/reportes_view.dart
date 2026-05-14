@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../theme/app_colors.dart';
@@ -6,7 +8,9 @@ import 'responsive.dart';
 import '../l10n/app_localizations.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart'; // <--- Importamos tu diccionario
+import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 
 class ReportesView extends StatefulWidget {
   const ReportesView({super.key});
@@ -196,14 +200,24 @@ class _ReportesViewState extends State<ReportesView> {
       RegExp(r'[\\/:*?"<>|]'),
       '-',
     );
+    final nombreArchivo = '$nombreLimpio.pdf';
+    final bytes = await pdf.save();
 
-    await Printing.sharePdf(
-      bytes: await pdf.save(),
-      filename: '$nombreLimpio.pdf',
-    );
-    // 2. GUARDAR EN LA BASE DE DATOS REAL
+    // 1. GUARDADO PERMANENTE EN TU PC (Documentos/VitisGuard/Reportes)
+    final dir = await getApplicationDocumentsDirectory();
+    final vitisDir = Directory('${dir.path}/VitisGuard/Reportes');
+    if (!await vitisDir.exists()) {
+      await vitisDir.create(recursive: true); // Crea las carpetas si no existen
+    }
+    final file = File('${vitisDir.path}/$nombreArchivo');
+    await file.writeAsBytes(bytes);
+
+    // 2. VENTANA DE COMPARTIR (Opcional, pero útil para imprimir directo)
+    await Printing.sharePdf(bytes: bytes, filename: nombreArchivo);
+
+    // 3. GUARDAR EN LA BASE DE DATOS
     await DatabaseHelper().guardarReporte({
-      'nombre_archivo': '$nombreLimpio.pdf',
+      'nombre_archivo': nombreArchivo,
       'fecha_creacion': DateTime.now().toString().split('.')[0],
       'analisis_id': data['id'],
     });
@@ -740,8 +754,8 @@ class _ReportesViewState extends State<ReportesView> {
 
             const SizedBox(height: 10),
 
-            const Text(
-              "Todavía no has generado reportes.",
+            Text(
+              l10n.errorGenerarArchivo,
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSoft, fontSize: 14),
             ),
@@ -814,9 +828,33 @@ class _ReportesViewState extends State<ReportesView> {
                     ),
                   ),
 
+                  // --- AQUÍ ESTÁ EL OJITO FUNCIONAL ---
                   IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.visibility, color: AppColors.accent),
+                    icon: const Icon(
+                      Icons.remove_red_eye,
+                      color: AppColors.accent,
+                    ),
+                    onPressed: () async {
+                      // Buscamos la ruta oficial donde lo guardamos
+                      final dir = await getApplicationDocumentsDirectory();
+                      final path =
+                          '${dir.path}/VitisGuard/Reportes/${reporte['nombre_archivo']}';
+                      final file = File(path);
+
+                      if (await file.exists()) {
+                        // Si el archivo existe, lo abre con el lector PDF de Windows (Edge, Adobe, etc.)
+                        await OpenFilex.open(path);
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.errorNoseEncuentraArchivo),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
                 ],
               ),

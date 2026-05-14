@@ -687,6 +687,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Error comunicándose con el servidor. Por favor, intenta nuevamente.'**
   String get errorComunicacion;
+
+  /// No description provided for @errorGenerarArchivo.
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no has generado reportes.'**
+  String get errorGenerarArchivo;
+
+  /// No description provided for @errorNoseEncuentraArchivo.
+  ///
+  /// In es, this message translates to:
+  /// **'El archivo no se encuentra. ¿Fue borrado manualmente?'**
+  String get errorNoseEncuentraArchivo;
 }
 
 class _AppLocalizationsDelegate
