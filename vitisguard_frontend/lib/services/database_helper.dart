@@ -22,7 +22,7 @@ class DatabaseHelper {
     databaseFactory = databaseFactoryFfi;
 
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "vitisguard_v2.db");
+    String path = join(documentsDirectory.path, "vitisguard_v4.db");
 
     return await openDatabase(
       path,
@@ -40,6 +40,16 @@ class DatabaseHelper {
             area_afectada INTEGER
           )
         ''');
+        //
+        await db.execute('''
+          CREATE TABLE reportes(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre_archivo TEXT,
+                fecha_creacion TEXT,
+                analisis_id INTEGER,
+                FOREIGN KEY (analisis_id) REFERENCES historial (id)
+          )
+        ''');
       },
     );
   }
@@ -52,5 +62,17 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> obtenerHistorial() async {
     Database db = await database;
     return await db.query('historial', orderBy: "id DESC");
+  }
+
+  // Guardar un nuevo reporte
+  Future<int> guardarReporte(Map<String, dynamic> reporte) async {
+    Database db = await database;
+    return await db.insert('reportes', reporte);
+  }
+
+  // Obtener todos los reportes generados
+  Future<List<Map<String, dynamic>>> obtenerReportes() async {
+    Database db = await database;
+    return await db.query('reportes', orderBy: "id DESC");
   }
 }

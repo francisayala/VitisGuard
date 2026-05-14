@@ -17,7 +17,9 @@ class ReportesView extends StatefulWidget {
 
 class _ReportesViewState extends State<ReportesView> {
   List<Map<String, dynamic>> _historial = [];
+  List<Map<String, dynamic>> _misReportesGuardados = [];
   int? _selectedIndex;
+  bool _verMisReportes = false;
 
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
@@ -31,6 +33,10 @@ class _ReportesViewState extends State<ReportesView> {
   void initState() {
     super.initState();
     _cargarHistorial();
+    _resetNombreReporte();
+  }
+
+  void _resetNombreReporte() {
     final now = DateTime.now();
     _nombreController.text =
         "Reporte ${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
@@ -38,8 +44,10 @@ class _ReportesViewState extends State<ReportesView> {
 
   Future<void> _cargarHistorial() async {
     final datos = await DatabaseHelper().obtenerHistorial();
+    final reportes = await DatabaseHelper().obtenerReportes();
     setState(() {
       _historial = datos;
+      _misReportesGuardados = reportes;
     });
   }
 
@@ -65,9 +73,26 @@ class _ReportesViewState extends State<ReportesView> {
     pw.ImageProvider? imageProvider;
     if (_incImagen && data['ruta_imagen'] != null) {
       final file = File(data['ruta_imagen']);
+
       if (file.existsSync()) {
-        final imageBytes = await file.readAsBytes();
-        imageProvider = pw.MemoryImage(imageBytes);
+        final extension = file.path.toLowerCase();
+
+        // Validamos formatos soportados por pdf
+        final soportado =
+            extension.endsWith('.jpg') ||
+            extension.endsWith('.jpeg') ||
+            extension.endsWith('.png');
+
+        if (soportado) {
+          try {
+            final imageBytes = await file.readAsBytes();
+            imageProvider = pw.MemoryImage(imageBytes);
+          } catch (e) {
+            debugPrint('Error cargando imagen PDF: $e');
+          }
+        } else {
+          debugPrint('Formato no soportado para PDF: $extension');
+        }
       }
     }
 
@@ -167,12 +192,24 @@ class _ReportesViewState extends State<ReportesView> {
         },
       ),
     );
+    final nombreLimpio = _nombreController.text.trim().replaceAll(
+      RegExp(r'[\\/:*?"<>|]'),
+      '-',
+    );
 
-    // 4. Compartir/Guardar el archivo
     await Printing.sharePdf(
       bytes: await pdf.save(),
-      filename: '${_nombreController.text}.pdf',
+      filename: '$nombreLimpio.pdf',
     );
+    // 2. GUARDAR EN LA BASE DE DATOS REAL
+    await DatabaseHelper().guardarReporte({
+      'nombre_archivo': '$nombreLimpio.pdf',
+      'fecha_creacion': DateTime.now().toString().split('.')[0],
+      'analisis_id': data['id'],
+    });
+
+    // 3. Refrescar la lista de reportes
+    _cargarHistorial();
   }
 
   pw.Widget _pdfInfoField(String label, String value) {
