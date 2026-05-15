@@ -66,8 +66,15 @@ class ResultsPanel extends StatelessWidget {
               fontWeight: indice > 0 ? FontWeight.bold : FontWeight.normal,
             ),
           ),
-          const SizedBox(height: 26),
+          if (indice > 0) ...[
+            const SizedBox(height: 20),
+            _buildDiagnosticoCard(diagnostico),
+          ],
 
+          const SizedBox(height: 26),
+          _buildDiagnosticoCard(
+            diagnostico,
+          ), // Tarjeta de diagnóstico con el nombre de la plaga
           /// MAIN RESULT CARD
           Container(
             padding: EdgeInsets.all(isMobile ? 18 : 24),
@@ -286,6 +293,57 @@ class ResultsPanel extends StatelessWidget {
             style: TextStyle(
               fontSize: isMobile ? 22 : 28,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= TARJETA DE DIAGNÓSTICO =================
+  Widget _buildDiagnosticoCard(String nombrePlaga) {
+    // Detectamos si es "Sana" para cambiar el color a verde
+    final bool esSana =
+        nombrePlaga.toLowerCase() == 'sana' ||
+        nombrePlaga.toLowerCase() == 'healthy';
+    final Color colorDiagnostico = esSana ? Colors.green : Colors.redAccent;
+    final IconData iconoDiagnostico = esSana
+        ? Icons.check_circle_outline
+        : Icons.coronavirus_outlined;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorDiagnostico.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(iconoDiagnostico, color: colorDiagnostico, size: 30),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Enfermedad detectada",
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  nombrePlaga,
+                  style: TextStyle(
+                    color: colorDiagnostico,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
