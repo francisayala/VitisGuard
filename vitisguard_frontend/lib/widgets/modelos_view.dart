@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import '../services/database_helper.dart';
 import '../widgets/global_state.dart';
+import 'dart:io';
 
 class ModelosView extends StatefulWidget {
   const ModelosView({super.key});
@@ -165,6 +166,38 @@ class _ModelosViewState extends State<ModelosView> {
       );
 
       if (confirmar != true) return;
+
+      // --- NUEVO: COPIAR EL ARCHIVO FÍSICAMENTE AL BACKEND ---
+      // =========================================================
+      try {
+        final archivoOrigen = File(filePath);
+
+        // 1. Nos aseguramos de que la carpeta de destino exista
+        final directorioDestino = Directory('../assets/models');
+        if (!await directorioDestino.exists()) {
+          await directorioDestino.create(recursive: true);
+        }
+
+        // 2. Armamos la ruta final y copiamos el archivo
+        final rutaDestino = '${directorioDestino.path}/$fileName';
+        await archivoOrigen.copy(rutaDestino);
+
+        debugPrint("✅ Archivo copiado exitosamente a: $rutaDestino");
+      } catch (e) {
+        debugPrint("❌ Error copiando el archivo: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Error al copiar el modelo a la carpeta del servidor.",
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return; // Detenemos todo. Si no se copia físicamente, no lo guardamos en SQLite.
+      }
+      // =========================================================
 
       String descripcionFinal = descController.text.trim();
       if (descripcionFinal.isEmpty) {
