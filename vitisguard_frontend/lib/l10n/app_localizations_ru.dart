@@ -346,4 +346,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get campoImagenesHint => '10,000';
+
+  @override
+  String get mensajeEliminarModelo =>
+      'Вы не можете удалить активную модель. Активируйте другую сначала.';
+
+  @override
+  String confirmarEliminarModelo(String nombre) {
+    return 'Вы уверены, что хотите удалить модель \'$nombre\'? Это действие не может быть отменено и приведет к удалению файла с сервера.';
+  }
+
+  @override
+  String get tituloEliminarModelo => 'Удалить модель';
+
+  @override
+  String get botonEliminarModelo => 'Удалить';
 }

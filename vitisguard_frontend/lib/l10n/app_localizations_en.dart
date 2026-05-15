@@ -346,4 +346,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campoImagenesHint => '10,000';
+
+  @override
+  String get mensajeEliminarModelo =>
+      'You can\'t delete the active model. Activate another one first.';
+
+  @override
+  String confirmarEliminarModelo(String nombre) {
+    return 'Are you sure you want to delete the model \'$nombre\'? This action cannot be undone and will delete the file from the server.';
+  }
+
+  @override
+  String get tituloEliminarModelo => 'Remove model';
+
+  @override
+  String get botonEliminarModelo => 'Delete';
 }

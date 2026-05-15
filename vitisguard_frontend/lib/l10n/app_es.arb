@@ -118,6 +118,17 @@
   "campoPrecision": "Precisión (ej: 94.2%)",
   "campoPrecisionHint": "95%",
   "campoImagenes": "Cantidad de imágenes",
-  "campoImagenesHint": "10,000"
-
+  "campoImagenesHint": "10,000",
+  "mensajeEliminarModelo": "No puedes eliminar el modelo activo. Activa otro primero.",
+  "confirmarEliminarModelo": "¿Estás seguro de que deseas eliminar el modelo '{nombre}'? Esta acción no se puede deshacer y borrará el archivo del servidor.",
+  "@confirmarEliminarModelo": {
+    "description": "Mensaje de advertencia al intentar borrar un modelo",
+    "placeholders": {
+      "nombre": {
+        "type": "String"
+      }
+    }
+  },
+  "tituloEliminarModelo": "Eliminar Modelo",
+  "botonEliminarModelo":"Eliminar"
 }

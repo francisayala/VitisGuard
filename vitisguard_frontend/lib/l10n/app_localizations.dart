@@ -765,6 +765,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'10,000'**
   String get campoImagenesHint;
+
+  /// No description provided for @mensajeEliminarModelo.
+  ///
+  /// In es, this message translates to:
+  /// **'No puedes eliminar el modelo activo. Activa otro primero.'**
+  String get mensajeEliminarModelo;
+
+  /// Mensaje de advertencia al intentar borrar un modelo
+  ///
+  /// In es, this message translates to:
+  /// **'¿Estás seguro de que deseas eliminar el modelo \'{nombre}\'? Esta acción no se puede deshacer y borrará el archivo del servidor.'**
+  String confirmarEliminarModelo(String nombre);
+
+  /// No description provided for @tituloEliminarModelo.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar Modelo'**
+  String get tituloEliminarModelo;
+
+  /// No description provided for @botonEliminarModelo.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar'**
+  String get botonEliminarModelo;
 }
 
 class _AppLocalizationsDelegate

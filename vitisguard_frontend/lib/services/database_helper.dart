@@ -22,7 +22,7 @@ class DatabaseHelper {
     databaseFactory = databaseFactoryFfi;
 
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "vitisguard_v6.db");
+    String path = join(documentsDirectory.path, "vitisguard_v7.db");
 
     return await openDatabase(
       path,
@@ -129,5 +129,11 @@ class DatabaseHelper {
         whereArgs: [id],
       );
     });
+  }
+
+  // Eliminar un modelo por su ID
+  Future<int> eliminarModelo(int id) async {
+    final db = await database;
+    return await db.delete('modelos', where: 'id = ?', whereArgs: [id]);
   }
 }

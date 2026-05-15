@@ -118,5 +118,17 @@
   "campoPrecision": "Точность (пример: 94.2%)",
   "campoPrecisionHint": "95%",
   "campoImagenes": "Количество изображений",
-  "campoImagenesHint": "10,000"
+  "campoImagenesHint": "10,000",
+  "mensajeEliminarModelo": "Вы не можете удалить активную модель. Активируйте другую сначала.",
+  "confirmarEliminarModelo": "Вы уверены, что хотите удалить модель '{nombre}'? Это действие не может быть отменено и приведет к удалению файла с сервера.",
+  "@confirmarEliminarModelo": {
+    "description": "Warning message when attempting to delete a model",
+    "placeholders": {
+      "nombre": {
+        "type": "String"
+      }
+    }
+  },
+  "tituloEliminarModelo": "Удалить модель",
+  "botonEliminarModelo":"Удалить"
 }

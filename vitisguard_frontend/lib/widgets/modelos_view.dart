@@ -243,6 +243,87 @@ class _ModelosViewState extends State<ModelosView> {
     }
   }
 
+  // --- LÓGICA PARA ELIMINAR MODELO ---
+  Future<void> _eliminarModelo(Map<String, dynamic> modelo) async {
+    // 1. Regla de Oro: No se puede borrar el modelo activo
+    final l10n = AppLocalizations.of(context)!;
+    if (modelo['activo'] == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.mensajeEliminarModelo),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 2. Preguntamos si está seguro
+    bool? confirmar = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1F24),
+          title: Text(
+            l10n.tituloEliminarModelo,
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            l10n.confirmarEliminarModelo(modelo['nombre']),
+            style: const TextStyle(color: AppColors.textSoft),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                l10n.botonCancelarDescripcion,
+                style: const TextStyle(color: AppColors.textSoft),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text(
+                l10n.botonEliminarModelo,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar != true) return;
+
+    // 3. Borramos el archivo físico del backend
+    try {
+      final archivoFisico = File('../assets/models/${modelo['nombre']}');
+      if (await archivoFisico.exists()) {
+        await archivoFisico.delete();
+        debugPrint("🗑️ Physical file deleted: ${modelo['nombre']}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error deleting the physical file: $e");
+    }
+
+    // 4. Borramos de la Base de Datos
+    await DatabaseHelper().eliminarModelo(modelo['id']);
+
+    // 5. Recargamos la pantalla
+    _cargarModelos();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Modelo '${modelo['nombre']}' eliminado."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
   // FUNCIÓN AUXILIAR PARA NO REPETIR CÓDIGO DE DISEÑO DE LOS TEXTFIELDS
   Widget _buildPopupTextField(
     TextEditingController controller,
@@ -361,6 +442,15 @@ class _ModelosViewState extends State<ModelosView> {
                               ),
                             ),
                           ),
+                          //Boton de borrar modelo
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () => _eliminarModelo(modelo),
+                            tooltip: l10n.botonEliminarModelo,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -383,13 +473,32 @@ class _ModelosViewState extends State<ModelosView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              modelo["nombre"],
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // ==========================================
+                            // --- NUEVO: FILA CON TÍTULO Y BOTÓN DE BASURA ---
+                            // ==========================================
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    modelo["nombre"],
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.redAccent,
+                                  ),
+                                  onPressed: () => _eliminarModelo(modelo),
+                                  tooltip: l10n.botonEliminarModelo,
+                                ),
+                              ],
                             ),
+                            // ==========================================
                             const SizedBox(height: 12),
                             _buildModelSpecs(modelo, l10n),
                           ],
