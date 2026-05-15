@@ -220,7 +220,7 @@ class _ModelosViewState extends State<ModelosView> {
             : "${precController.text}%",
         "imagenes": imgController.text.isEmpty
             ? "?"
-            : "${imgController.text} ${l10n.imagenes}",
+            : imgController.text, //"${imgController.text} ${l10n.imagenes}",
         "fecha": fechaHoy,
         "detalles": descripcionFinal,
         "activo": 0, // 0 significa Inactivo en SQLite
